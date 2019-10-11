@@ -62,7 +62,7 @@ eb_data$QuestionAnswer[eb_reverse$QuestionNumber %in% q_reversed & eb_reverse$Qu
 
 ```
 
-Hostile Sexism Score
+#Hostile Sexism Score
 ```{r}
 #Hostile sexism score questions
 hostile_questions = c(2, 4, 5, 7, 10, 11, 14, 15, 16, 18, 21)
@@ -72,7 +72,7 @@ eb_results_hostile <- eb_data %>%filter(eb_data$QuestionNumber %in% hostile_ques
 
 ```
 
-Benevolent Sexism Score
+#Benevolent Sexism Score
 ```{r}
 #Benevolent sexism score questions
 benevolent_questions = c(1, 3, 6, 8, 9, 12, 13, 17, 19, 20, 22)
@@ -83,7 +83,7 @@ eb_results_benevolent <- eb_data %>%filter(eb_data$QuestionNumber %in% benevolen
 ```
 
 
-Creating Results file
+#Creating Results file
 ```{r}
 #Merge the results frame
 eb_results <- full_join(eb_results_benevolent, eb_results_hostile)
