@@ -3,8 +3,95 @@ title: "Preprocessing, Explicit"
 output: html_document
 ---
 
-Loading data
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Getting packages
+```{r loading packages, include = FALSE}
+
+library(pacman)
+
+p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm)
+```
+
+#Loading data
+```{r loading data}
+path_eb = "~/Cognitive Science/5. Semester/Bachelor, MM/GIT/Bachelor-MM-/explicit_bias/explicit_data/"
+
+#Listing files in path
+files <- list.files(path = path_eb)
+
+#Create empty data frame
+eb_data <- data.frame(matrix(ncol = 6, nrow = 0))
+
+#Looping through data files and inserting in dataframe
+for (i in files) {
+  d <- read.delim(file = paste(path_eb, i, sep = ""), sep = ",", header = TRUE)
+  eb_data = rbind(eb_data,d)
+}
+
+#removing first column
+eb_data <- eb_data[, 2:6]
+
+#changing data to numeric values
+eb_data$QuestionNumber <- as.numeric(eb_data$QuestionNumber) 
+eb_data$QuestionAnswer <- as.numeric(eb_data$QuestionAnswer) 
+```
+
+Reversing items
 ```{r}
-e_data <- load.csv("")
+#Making a list of questions where answers are to be reversed
+q_reversed = c(3,6,7,13,18,21)
+
+#Dublicating data in order to not overwrite reversed question answers
+eb_reverse = eb_data
+
+#Reversing
+eb_data$QuestionAnswer[eb_reverse$QuestionNumber %in% q_reversed & eb_reverse$QuestionAnswer == 0] <- 5
+
+eb_data$QuestionAnswer[eb_reverse$QuestionNumber %in% q_reversed & eb_reverse$QuestionAnswer == 1] <- 4
+
+eb_data$QuestionAnswer[eb_reverse$QuestionNumber %in% q_reversed & eb_reverse$QuestionAnswer == 2] <- 3
+
+eb_data$QuestionAnswer[eb_reverse$QuestionNumber %in% q_reversed & eb_reverse$QuestionAnswer == 3] <- 2
+
+eb_data$QuestionAnswer[eb_reverse$QuestionNumber %in% q_reversed & eb_reverse$QuestionAnswer == 4] <- 1
+
+eb_data$QuestionAnswer[eb_reverse$QuestionNumber %in% q_reversed & eb_reverse$QuestionAnswer == 5] <- 0
+
+```
+
+#Hostile Sexism Score
+```{r}
+#Hostile sexism score questions
+hostile_questions = c(2, 4, 5, 7, 10, 11, 14, 15, 16, 18, 21)
+
+#Averaging questions relating to hostile sexism score per participant
+eb_results_hostile <- eb_data %>%filter(eb_data$QuestionNumber %in% hostile_questions) %>% group_by(ID) %>% summarise(hostile_score = mean(QuestionAnswer))
+
+```
+
+#Benevolent Sexism Score
+```{r}
+#Benevolent sexism score questions
+benevolent_questions = c(1, 3, 6, 8, 9, 12, 13, 17, 19, 20, 22)
+
+#Averaging questions relating to hostile sexism score per participant
+eb_results_benevolent <- eb_data %>%filter(eb_data$QuestionNumber %in% benevolent_questions) %>% group_by(ID) %>% summarise(benevolent_score = mean(QuestionAnswer))
+
+```
+
+
+#Creating Results file
+```{r}
+#Merge the results frame
+eb_results <- full_join(eb_results_benevolent, eb_results_hostile)
+
+#Creating overall score
+eb_results$overall_score <- (eb_results$benevolent_score+eb_results$hostile_score)/2
+
+#Creating csv-file
+write.csv(eb_results, file = "eb_results.csv")
 ```
 
