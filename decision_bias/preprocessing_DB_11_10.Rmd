@@ -46,6 +46,14 @@ data_db$group_id <- as.character(paste(data_db$SubjectID_left,"_",data_db$Subjec
 
 ```
 
+```{r make a column with unique subject ID}
+
+data_db$SubjectID_left_unique <- as.character(paste(data_db$SubjectID_left,"_",data_db$Round, sep = ""))
+data_db$SubjectID_right_unique <- as.character(paste(data_db$SubjectID_right,"_",data_db$Round, sep = ""))
+
+```
+
+
 ```{r difficulty measure for all colors}
 
 #Making column, which expresses difficulty
