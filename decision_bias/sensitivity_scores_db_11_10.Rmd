@@ -9,6 +9,51 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r loading packages and data}
+library(pacman)
+p_load(plotly, jpeg, tm, brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble)
+
+#setting working directory
+setwd("~/Bachelor-MM-/decision_bias")
+
+#data
+data_db <- read.csv("data_db.csv")
+
+```
+
+#Pooling
+
+```{r making long format, include = FALSE}
+#Subsetting the left data
+left <- subset(data_db, -select = -c("SubjectID_right", "Gender_right", "Age_right", "Response_right", "Joint_right", "Correct_right", "RT_right", "RT_joint_right", "SubjectID_right_unique", "response_right_dummy"))
+
+
+
+#Changing names
+names(left) <- c("GroupNumber", "unique", "dif_blue", "answer", "joint_answer", "Correct", "Correct_joint", "dif_blue_abs")
+
+#Subsetting right data
+right <- subset(data_db, select = -c("SubjectID_left", "Gender_left", "Age_left", "Response_left", "Joint_left", "Correct_left", "RT_left", "RT_joint_left", "SubjectID_left_unique", "response_left_dummy"))
+
+#Chainging names
+names(right) <- c("GroupNumber", "unique", "dif_blue", "answer", "joint_answer", "Correct", "Correct_joint", "dif_blue_abs")
+
+#Removing half the joint data to inform the model, there is only one. 
+right$Correct_joint <- NA
+right$joint_answer <- NA
+
+#Joining the dataframes
+ldata <- rbind(left, right)
+
+#Setting NA in correct answers
+ldata$Correct_joint[is.na(ldata$joint_answer)] <- NA
+
+
+```
+
+
+
+
 
 
 
