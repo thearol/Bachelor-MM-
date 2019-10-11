@@ -1,0 +1,10 @@
+---
+title: "Preprocessing, Explicit"
+output: html_document
+---
+
+Loading data
+```{r}
+e_data <- load.csv("")
+```
+
