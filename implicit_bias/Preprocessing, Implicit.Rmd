@@ -16,44 +16,62 @@ library(pacman)
 p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm)
 ```
 
+#Setting working directory
+```{r}
+setwd("~/Bachelor-MM-/implicit_bias") #TRS
+
+```
+
 #Loading data
 ```{r loading data}
-path_ib = "~/Cognitive Science/5. Semester/Bachelor, MM/GIT/Bachelor-MM-/implicit_bias/implicit_data/"
+#path_ib = "~/Cognitive Science/5. Semester/Bachelor, MM/GIT/Bachelor-MM-/implicit_bias/implicit_data/" #KK
+path_ib = "implicit_data/" #TRS
+
 
 #Listing files in path
 files <- list.files(path = path_ib)
 
 #Create empty data frame
-ib_data <- data.frame(matrix(ncol = 10, nrow = 0))
+data_ib <- data.frame(matrix(ncol = 10, nrow = 0))
 
 #Looping through data files and inserting in dataframe
 for (i in files) {
   d <- read.delim(file = paste(path_ib, i, sep = ""), sep = ",", header = TRUE)
-  ib_data = rbind(ib_data,d)
+  data_ib = rbind(data_ib,d)
 }
 
 #removing first column
-ib_data <- ib_data[, 2:10]
+data_ib <- data_ib[, 2:10]
 
 ```
 
-#Subsetting data from incongruent conditions with two groups
+#Subsetting data from conditions with four categories
 ```{r}
-ib_data <- subset(ib_data, block == 3 | block == 4 | block == 6 | block == 7)
+data_ib <- subset(data_ib, block == 3 | block == 4 | block == 6 | block == 7)
 ```
-
 
 #Adding a column with condition: 1 = Incongruent, 0 = Congruent
 ```{r}
-ib_data$condition <- 0 
+data_ib$condition <- 0 
 
-ib_data[ib_data$block == 3,]$condition <- 0
-ib_data[ib_data$block == 4,]$condition <- 0
-ib_data[ib_data$block == 6,]$condition <- 1
-ib_data[ib_data$block == 7,]$condition <- 1
+data_ib[data_ib$block == 3,]$condition <- 1
+data_ib[data_ib$block == 4,]$condition <- 1
+data_ib[data_ib$block == 6,]$condition <- 0
+data_ib[data_ib$block == 7,]$condition <- 0
 
 ```
 
+#Remove first two trials of each block 
+```{r}
+data_ib <- filter(data_ib, trial != c(1, 2))
+```
+
+#Creating rt cut-off
+```{r}
+#Creating cut-offs
+data_ib$rt[data_ib$rt > 3] <- NA
+data_ib$rt[data_ib$rt < 0.3] <- NA
+```
 
 #Log-transforming RT-data
 ```{r}
@@ -61,30 +79,17 @@ ib_data$rt_log <- log(ib_data$rt)
 ```
 
 #calculate difference in average speed per participant using  B4 & B7 and B3 & B6
-
 ```{r}
-
-#Benevolent sexism score questions
-benevolent_questions = c(1, 3, 6, 8, 9, 12, 13, 17, 19, 20, 22)
-
-#Averaging questions relating to hostile sexism score per participant
-ib_results <- ib_data %>% group_by(ID) %>% summarise(mean_RT = mean(rt))
-
-
-
-
+#Creating new dataframe for reaction tmies
 meanrt <- data.frame(matrix(ncol=3))
 
-
-
-
-
+#Making a loop to go through participants and blocks and calculate mean rt
 n=1
 
-1#average rt per participant per block 
+#average rt per participant per block 
 for (i in unique(ib_data$ID)){
-  for (x in unique(data$block)){
-    tempdata <- subset(data, ID==i & block==x)
+  for (x in unique(ib_data$block)){
+    tempdata <- subset(ib_data, ID==i & block==x)
     meanrt[n,1] <- i
     meanrt[n,2] <- x
     meanrt[n,3] <- mean(tempdata$rt)
@@ -92,8 +97,38 @@ for (i in unique(ib_data$ID)){
   }
 }
 
+#Renaming column names
 colnames(meanrt) <- c("ID", "block", "mean_rt")
 
 ```
+
+#Calculating error rate
+```{r}
+#Creating a table of correct and incorrect first press errors
+table(data_ib$correct)
+
+#Calculating the error rate overall in percentage
+416/7056*100
+
+#Calculating individual error rate
+error_rate <- data_ib %>%group_by(ID) %>% summarise(error_rate = (NROW(trial)-sum(correct))/NROW(trial))
+
+#Investigating the error rate
+range(error_rate$error_rate)
+hist(error_rate$error_rate)
+mean(error_rate$error_rate)
+```
+
+#Removing incorrect trials
+```{r}
+data_ib <- filter(data_ib, correct == 1)
+```
+
+
+#Create CSV
+```{r}
+write.csv(data_ib, file = "data_ib.csv")
+```
+
 
 
