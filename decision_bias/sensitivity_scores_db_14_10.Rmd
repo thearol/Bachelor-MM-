@@ -249,6 +249,11 @@ disagree_db <- subset(disagree_db, select = -c(X))
 
 ```
 
+#Excluding KK from the data 
+```{r}
+disagree_db <- filter(disagree_db, group_id != "25_KK_27" & group_id != "25_KK_28")
+```
+
 
 #Skill difference
 
