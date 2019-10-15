@@ -21,7 +21,7 @@ data_db <- read.csv("data_db.csv")
 
 ```
 
-#Pooling
+#Transforming to long format
 
 ```{r making long format, include = FALSE}
 
@@ -63,8 +63,7 @@ long_data_db$Correct_joint[is.na(long_data_db$response_joint_dummy)] <- NA
 
 ## Create models for sensitivity scores
 
-
-```{r get priors, define priors and prior predictive check}
+```{r get priors, define priors and prior predictive check, eval=FALSE}
 
 #use get prior function
 get_prior(response_dummy ~ diff + (1 + diff|SubjectID_unique), family = "bernoulli", data = long_data_db)
@@ -87,7 +86,7 @@ pp_check(prior_check_sensitivity,nsamples = 1000)
 ```
 
 
-```{r sensitivity model}
+```{r sensitivity model , eval=FALSE}
 #Making the model - using answer
 m_sensitivity <- brm(
   response_dummy ~ diff + (1+diff|SubjectID_unique),
@@ -100,11 +99,12 @@ m_sensitivity <- brm(
   control = list(adapt_delta = 0.9)
 ) 
 
-
 m_sensitivity
 
 ```
 
+
+#Saving model estimated for sensitivity
 ```{r save the sensitivity estimates}
 #Saving random effect for individual intercept
 random_effects_intercept <- as.data.frame(ranef(m_sensitivity))[,1:2] 
@@ -116,62 +116,30 @@ random_effects_slope <- as.data.frame(ranef(m_sensitivity))[,5:6]
 fixed_effects <- as.data.frame(fixef(m_sensitivity)) #Making data frame of fixed effects
 
 
-
-sensitivity_scores = data.frame(matrix(vector(), 128, 3,
-                dimnames=list(c(), c("Intercept", "Slope", "Side"))),
+sensitivity_scores = data.frame(matrix(vector(), 128, 2,
+                dimnames=list(c(), c("Intercept", "Slope"))),
                 stringsAsFactors=F)
 
 #Add fixed effects of intercept to random effects of intercept
 sensitivity_scores$Intercept <- random_effects_intercept[,1] + fixed_effects[1,1]
 
-
 #Add fixed effects of slope to random effects of slope
-sensitivity_scores$Slope <- random_effects_slope[,1] + fixed_effects[2,1]
+sensitivity_scores$Slope <- random_effects_slope[,1] + fixed_effects[2,1] #last year done differently
 
 #Adding rownames
 sensitivity_scores <- cbind(Row.Names = rownames(random_effects_intercept), as.data.frame(sensitivity_scores))
 
-#rename rownames to subject id
-names(sensitivity_scores)[names(sensitivity_scores == "Row.Names")] <- "SubjectID_unique"
+#Duplicating comlumn, but as a character so we can use it to merge later
+sensitivity_scores$SubjectID_unique <- as.character(sensitivity_scores$Row.Names)
 
-sensitivity_scores$SubjectID_unique <- as.character(sensitivity_scores$SubjectID_unique)
+#Removing first column
+sensitivity_scores <- sensitivity_scores[,2:4]
 
-##### her bliver det en factor med 1 level
-
-```
-
-```{r merge sensitivity scores with long_data_db}
-long_data_db <- merge(long_data_db,sensitivity_scores,by="SubjectID_unique")
-
-```
-
-```{r create dataframe that only contains the columns which we would like to merge into wide format}
-
-#Make dataframe with intercept, slope, side, and unique subject
-sensitivity_scores <- distinct(long_data_db, SubjectID_unique, Side, Intercept, Slope)
 
 ```
 
 
-```{r make wide to merge with disagree data}
-sensitivity_scores_wide <- dcast(setDT(sensitivity_scores), SubjectID_unique~Side, value.var = c("SubjectID_unique", "Slope", "Intercept"))
-
-names(sensitivity_scores_wide)[names(sensitivity_scores_wide) == "SubjectID_unique.1_left"] <- "SubjectID_left_unique"
-
-
-names(sensitivity_scores_wide)[names(sensitivity_scores_wide) == "SubjectID_unique.1_right"] <- "SubjectID_right_unique"
-
-sensitivity_scores_wide$SubjectID_left_unique <- as.character(sensitivity_scores_wide$SubjectID_left_unique)
-
-```
-
-```{r merge sensitivity scores into db_data in wide format}
-disagree_data_test <- merge(disagree_db, sensitivity_scores_wide, by = "SubjectID_unique_left")
-
-
-write.csv(sensitivity_scores, file = "sensitivity_scores.csv")
-
-```
+#Plotting the model 
 
 
 ```{r slopes for individuals in single plots}
@@ -182,6 +150,7 @@ marginal_effects(
   re_formula = NULL
   )
 ```
+
 
 ```{r marginal effects, classic }
 marginal_effects(m_sensitivity)
@@ -258,22 +227,78 @@ dev.off()
 
 ```
 
+```{r merge sensitivity scores with long_data_db}
+long_data_db <- merge(long_data_db,sensitivity_scores, by="SubjectID_unique")
+
+```
 
 
-```{r merge sensitivity scores with disagree data}
+#Making wide format with results from the sensitivity model
+```{r create dataframe that only contains the columns which we would like to merge into wide format}
 
-disagree_db <- read.csv("disagree_db.csv")
+#Make dataframe with intercept, slope, side, and unique subject
+sensitivity_scores <- distinct(long_data_db, SubjectID_unique, Side, Intercept, Slope)
+
 ```
 
 
+```{r make wide to merge with disagree data}
+#Duplicating SubjectID to make into a character
+sensitivity_scores$temp_SubjectID_unique <- as.character(sensitivity_scores$SubjectID_unique)
 
-```{r creating wide format, include = FALSE, this does not work}
-#Merging ldata output with wide data frame
-data$Group <-data$GroupNumber
+#deselect the old column
+sensitivity_scores <- subset(sensitivity_scores, select = -c(SubjectID_unique))
 
-#Inserting estimates in wide format
-data$Intercept_pooling_rf_left[data$GroupNumber == unique(str_extract(pooling_individual$Row.Names, "\\d"))] <- pooling_individual$Intercept_ranef_fixef_estimate_answer[data$SubjectID_left == removeNumbers(gsub('[_]', '', pooling_individual$Row.Names))]
+#rename to the old name
+names(sensitivity_scores)[names(sensitivity_scores) == "temp_SubjectID_unique"] <- "SubjectID_unique"
+
+
+#Dividing into left and right data
+sensitivity_scores_right <- filter(sensitivity_scores, Side == "right")
+sensitivity_scores_left <- filter(sensitivity_scores, Side == "left")
+
+#Deleting side column
+sensitivity_scores_right <- subset(sensitivity_scores_right, select = -c(Side))
+sensitivity_scores_left <- subset(sensitivity_scores_left, select = -c(Side))
+
+#Renaming columns
+colnames(sensitivity_scores_left) <-  c("Intercept_left", "Slope_left", "SubjectID_left_unique")
+colnames(sensitivity_scores_right) <-  c("Intercept_right", "Slope_right", "SubjectID_right_unique")
+
+#Merging left data
+disagree_db <- merge(disagree_db, sensitivity_scores_left, by = "SubjectID_left_unique", all.x = TRUE, all.y = TRUE )
+
+#Merging right data
+disagree_db <- merge(disagree_db, sensitivity_scores_right, by = "SubjectID_right_unique", all.x = TRUE, all.y = TRUE )
+
+#deselect X
+disagree_db <- subset(disagree_db, select = -c(X))
 
 
 ```
+
+
+#Skill difference
+
+```{r calculating skill difference}
+disagree_db$skill_dif <- 0 #Creating column of 0
+disagree_db$skill_dif <- ifelse(disagree_db$chosen_leader == "Left_lead", disagree_db$Slope_left/disagree_db$Slope_right, disagree_db$Slope_right/disagree_db$Slope_left) #calculating skill difference as a ratio between leader and follower sensitivity
+
+```
+
+
+#Plotting skill difference
+```{r}
+hist(disagree_db$skill_dif)
+```
+
+
+#Write CSV
+```{r creating CSV}
+
+write.csv(disagree_db, file = "disagree_sensitivity_db_wide.csv")
+
+```
+
+
 
