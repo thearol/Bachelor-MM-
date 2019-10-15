@@ -58,7 +58,7 @@ data_db$SubjectID_right_unique <- as.character(paste(data_db$SubjectID_right,"_"
 
 #Making column, which expresses difficulty
 data_db <- data_db %>%
-  mutate(diff = ifelse(Block == "blå", abs(Prop_blue_image_2 - Prop_blue_image_1), ifelse(Block == "rød", abs(Prop_red_image_2 - Prop_red_image_1), ifelse(Block == "grøn", abs(Prop_green_image_2 - Prop_green_image_1), ifelse(Block == "gul", abs(Prop_yellow_image_2 - Prop_yellow_image_1), NA)))))
+  mutate(diff = ifelse(Block == "blå", (Prop_blue_image_2 - Prop_blue_image_1), ifelse(Block == "rød", (Prop_red_image_2 - Prop_red_image_1), ifelse(Block == "grøn", (Prop_green_image_2 - Prop_green_image_1), ifelse(Block == "gul", (Prop_yellow_image_2 - Prop_yellow_image_1), NA)))))
 
 ```
 
