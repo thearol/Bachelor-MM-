@@ -10,7 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #Getting packages
 ```{r loading packages, include = FALSE}
-
 library(pacman)
 
 p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm)
@@ -19,14 +18,12 @@ p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, re
 #Setting working directory
 ```{r}
 setwd("~/Bachelor-MM-/implicit_bias") #TRS
-
 ```
 
 #Loading data
 ```{r loading data}
 #path_ib = "~/Cognitive Science/5. Semester/Bachelor, MM/GIT/Bachelor-MM-/implicit_bias/implicit_data/" #KK
 path_ib = "implicit_data/" #TRS
-
 
 #Listing files in path
 files <- list.files(path = path_ib)
@@ -42,7 +39,6 @@ for (i in files) {
 
 #removing first column
 data_ib <- data_ib[, 2:10]
-
 ```
 
 #Subsetting data from conditions with four categories
@@ -75,21 +71,26 @@ data_ib$rt[data_ib$rt < 0.3] <- NA
 
 #Log-transforming RT-data
 ```{r}
-ib_data$rt_log <- log(ib_data$rt)
+data_ib$rt_log <- log(data_ib$rt)
+```
+
+#Removing rows including NA's
+```{r}
+data_ib <- na.omit(data_ib) 
 ```
 
 #calculate difference in average speed per participant using  B4 & B7 and B3 & B6
 ```{r}
-#Creating new dataframe for reaction tmies
+#Creating new dataframe for reaction times
 meanrt <- data.frame(matrix(ncol=3))
 
 #Making a loop to go through participants and blocks and calculate mean rt
 n=1
 
 #average rt per participant per block 
-for (i in unique(ib_data$ID)){
-  for (x in unique(ib_data$block)){
-    tempdata <- subset(ib_data, ID==i & block==x)
+for (i in unique(data_ib$ID)){
+  for (x in unique(data_ib$block)){
+    tempdata <- subset(data_ib, ID==i & block==x)
     meanrt[n,1] <- i
     meanrt[n,2] <- x
     meanrt[n,3] <- mean(tempdata$rt)
