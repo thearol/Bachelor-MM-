@@ -156,7 +156,7 @@ marginal_effects(
 marginal_effects(m_sensitivity)
 ```
 
-```{r plots that did not work}
+```{r plots that did not work, eval = FALSE, include = FALSE}
 
 
 spaghetti(m_sensitivity, xvar = "diff", spage)
@@ -195,36 +195,8 @@ marginal_effects(ranef(m_sensitivity))
 
 sjp.lmer(m_sensitivity, vars = "c12hour", type = "ri.slope")
 
-#Defining paths for plots
-trans_path_pool_indi = file.path("~/SocKultExam/plots/transition/pool/trans_plot_pool_individual.jpeg")
-pp_path_pool_indi = file.path("~/SocKultExam/plots/pp_check/pool/pp_plot_pool_individual.jpeg")
-marginal_path_pool_indi = file.path("~/SocKultExam/plots/marginal/pool/marginal_plot_pool_individual.jpeg")
-#...and for correct
-correct_trans_path_pool_indi = file.path("~/SocKultExam/plots/correct_transition/pool/correct_trans_plot_pool_individual.jpeg")
-correct_pp_path_pool_indi = file.path("~/SocKultExam/plots/correct_pp_check/pool/correct_pp_plot_pool_individual.jpeg")
-correct_marginal_path_pool_indi = file.path("~/SocKultExam/plots/correct_marginal/pool/correct_marginal_plot_pool_individual.jpeg")
-  
 
-
-
-
-  
-#Marginal effects plot: Plotted and saved
-jpeg(file=marginal_path_pool_indi)
-print(marginal_effects(m_sensitivity))
-dev.off()
-    
-  
-#transition plot: Plotted and saved
-jpeg(file=trans_path_pool_indi)
-print(plot(m_sensitivity))
-dev.off()
-
-#pp_check plot: Plotted and saved
-jpeg(file=pp_path_pool_indi)
-print(pp_check(prior_check_answer_pool_individual, nsamples = 100))
-dev.off()
-
+ 
 ```
 
 ```{r merge sensitivity scores with long_data_db}
