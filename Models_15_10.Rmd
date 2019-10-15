@@ -7,29 +7,78 @@ output: html_document
 
 #Getting packages
 ```{r loading packages, include = FALSE}
-
 library(pacman)
-
 p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm)
 ```
 
-
 #Setting directory
 ```{r}
-setwd("~/Bachelor-MM-/implicit_bias") #TRS
-
+setwd("~/Bachelor-MM-/") #TRS
 ```
-
 
 #Loading data
 ```{r}
-data_ib <- read.csv("data_ib.csv")
-data_eb <- read.csv("eb_results.csv")
-data_db <- read.csv("disagree_sensitivity_db_wide.csv")
-
+data_ib <- read.csv("implicit_bias/data_ib.csv")[,2:11]
+data_eb <- read.csv("explicit_bias/eb_results.csv")[, 2:5]
+data_db <- read.csv("decision_bias/disagree_sensitivity_db_wide.csv")[, 2:47]
 ```
 
 ### IMPLICIT BIAS
+Vi mangler at retfærdigegøre bias for modellen, dette er bare Kathrines priors. 
+```{r implicit model}
+#to figure out which prior I need to make 
+get_prior(rt ~ condition + (1 + condition|ID) + (1|gender), data = data_ib)
+
+#Defining a prior OBS!
+prior_ib = c(prior(normal(0.5, 1.5), class = "Intercept"), 
+          prior(normal(0, 0.5), class = "b"), 
+          prior(normal(0, 0.5), class = "sigma"),
+          prior(normal(0, 0.1), class = "sd"))
+
+
+
+#Implicit model
+model_ib_prior <- brm(rt ~ condition + (1 + condition|ID),
+                    data = data_ib,
+                    family = gaussian(),
+                    prior = prior_ib,
+                    sample_prior = "only",
+                    cores = 2,
+                    chains = 2)
+
+
+pp_check(model_ib_prior) #Doing a predictive prior check to test priors
+
+
+model_ib <- brm(rt ~ condition + (1 + condition|ID),
+                    data = data_ib,
+                    family = gaussian(),
+                    prior = prior_ib,
+                    sample_prior = TRUE,
+                    iter = 5000,
+                    warmup = 2000,
+                    cores = 2,
+                    chains = 4)
+
+summary(model_ib)
+```
+
+#Implicit bias, hypothesis testing
+```{r}
+hypothesis(model_ib, "condition > 0")
+```
+
 ### EXPLICIT BIAS
+
+Lav en model, der viser om mænd er mere sexistiske. 
+
+Men det informerer ikkke spørgsmålet, om der et kønsbias synderligt, det den kun er rettet imod at beskrive kønnenes indstilling til kvinder?  
+
 ### DECISION BIAS
+
+Lav modeller magen til dem fra sidste semester
+
+### GENDER BIAS
+
+Lav modeller, der kombinerer data fra de tre forskellige dele. 
 
