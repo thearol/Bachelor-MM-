@@ -32,7 +32,7 @@ Vi mangler at retfærdigegøre bias for modellen, dette er bare Kathrines priors
 get_prior(rt ~ condition + (1 + condition|ID), data = data_ib)
 
 #Defining a prior OBS!
-prior_ib1 = c(prior(normal(1, 0.5), class = "Intercept"), 
+prior_ib1 = c(prior(normal(0.8, 0.4), class = "Intercept"), 
           prior(normal(0, 0.5), class = "b"), 
           prior(normal(0, 0.5), class = "sigma"),
           prior(normal(0, 0.1), class = "sd"))
@@ -43,13 +43,13 @@ prior_ib1 = c(prior(normal(1, 0.5), class = "Intercept"),
 model_ib1_prior <- brm(rt ~ condition + (1 + condition|ID),
                     data = data_ib,
                     family = gaussian(),
-                    prior = prior_ib,
+                    prior = prior_ib1,
                     sample_prior = "only",
                     cores = 2,
                     chains = 2)
 
 
-pp_check(model_ib_prior) #Doing a predictive prior check to test priors
+pp_check(model_ib1_prior, nsamples = 100) #Doing a predictive prior check to test priors
 
 
 model_ib1 <- brm(rt ~ condition + (1 + condition|ID),
