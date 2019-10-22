@@ -13,14 +13,83 @@ knitr::opts_chunk$set(echo = TRUE)
 library(pacman)
 p_load(dagitty)
 
+```
+
+EXAMPLE:
+g <- dagitty('dag {
+    ASD [pos="0,1"]
+    ADOS_QUESTIONS [pos="1,0"]
+    QUESTIONS_1 [pos="1,1"]
+    QUESTIONS_2 [pos="1,2"]
+    QUESTIONS_3 [pos="1,3"]
+    VerbalIQ [pos="2,1"]
+    NonVerbalIQ [pos="2,2"]
+    SocialIQ [pos="2,3"]
+    DIAGNOSIS [pos="3,1"]
+    ADOS [pos="2,0"]
+    
+    ASD -> QUESTIONS_1 -> VerbalIQ -> DIAGNOSIS
+    ASD -> QUESTIONS_2 -> NonVerbalIQ -> DIAGNOSIS
+    ASD -> QUESTIONS_3 -> SocialIQ -> DIAGNOSIS
+    ASD -> ADOS_QUESTIONS -> ADOS -> DIAGNOSIS
+    QUESTIONS_1 -> NonVerbalIQ
+    QUESTIONS_1 -> SocialIQ
+    QUESTIONS_2 -> VerbalIQ
+    QUESTIONS_2 -> SocialIQ
+    QUESTIONS_3 -> VerbalIQ
+    QUESTIONS_3 -> NonVerbalIQ
+}')
+plot(g)
 
 
 
 
+##Combinded model
+```{r}
 
+big_dack <- dagitty('dag {
+    Biological_sex [pos="0,1"]
+    Gender [pos="1,3"]
+    Socioeconomic_factors [pos="1,1"]
+    Age [pos="1,2"]
+    IB [pos="2,1"]
+    EB [pos="2,3"]
+    Unknown [pos="3,4"]
+    DB [pos="3,2"]
+    Media [pos="4,1"]
+    Emperical_gender_dist [pos="4,2"]
+    Cognitive_GB [pos="4,3"]
+    Structures_in_society [pos="5,3"]
+    
+    Biological_sex -> Gender -> EB -> DB -> Cognitive_GB
+    Gender -> IB -> DB
+    Biological_sex -> DB
+    Unknown -> Cognitive_GB -> Emperical_gender_dist -> EB
+    Unknown -> DB
+    Unknown -> EB
+    Unknown -> IB
+    Structures_in_society -> Media -> IB
+    Media -> Structures_in_society
+    Media -> EB
+    Emperical_gender_dist -> Structures_in_society
+    Structures_in_society -> Emperical_gender_dist
+    Age -> EB
+    Age -> IB
+    Socioeconomic_factors -> IB
+    Socioeconomic_factors -> EB
+    Socioeconomic_factors -> Gender
+    Emperical_gender_dist -> Gender
 
+}')
+plot(big_dack)
+
+  
+  
+  
 
 ```
+
+
 
 
 
