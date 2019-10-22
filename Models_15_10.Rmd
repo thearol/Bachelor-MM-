@@ -23,14 +23,16 @@ data_eb <- read.csv("explicit_bias/eb_results.csv")[, 2:5]
 data_db <- read.csv("decision_bias/disagree_sensitivity_db_wide.csv")[, 2:47]
 ```
 
-### IMPLICIT BIAS
+### IMPLICIT BIAS, MODELS
+
 Vi mangler at retfærdigegøre bias for modellen, dette er bare Kathrines priors. 
-```{r implicit model}
-#to figure out which prior I need to make 
-get_prior(rt ~ condition + (1 + condition|ID) + (1|gender), data = data_ib)
+```{r implicit model, condition}
+
+#to figure out which prior we need to make
+get_prior(rt ~ condition + (1 + condition|ID), data = data_ib)
 
 #Defining a prior OBS!
-prior_ib = c(prior(normal(0.5, 1.5), class = "Intercept"), 
+prior_ib1 = c(prior(normal(1, 0.5), class = "Intercept"), 
           prior(normal(0, 0.5), class = "b"), 
           prior(normal(0, 0.5), class = "sigma"),
           prior(normal(0, 0.1), class = "sd"))
@@ -38,7 +40,7 @@ prior_ib = c(prior(normal(0.5, 1.5), class = "Intercept"),
 
 
 #Implicit model
-model_ib_prior <- brm(rt ~ condition + (1 + condition|ID),
+model_ib1_prior <- brm(rt ~ condition + (1 + condition|ID),
                     data = data_ib,
                     family = gaussian(),
                     prior = prior_ib,
@@ -50,7 +52,47 @@ model_ib_prior <- brm(rt ~ condition + (1 + condition|ID),
 pp_check(model_ib_prior) #Doing a predictive prior check to test priors
 
 
-model_ib <- brm(rt ~ condition + (1 + condition|ID),
+model_ib1 <- brm(rt ~ condition + (1 + condition|ID),
+                    data = data_ib,
+                    family = gaussian(),
+                    prior = prior_ib1,
+                    sample_prior = TRUE,
+                    iter = 5000,
+                    warmup = 2000,
+                    cores = 2,
+                    chains = 4)
+
+summary(model_ib1)
+```
+
+
+#Difference between gender and condition, main effects
+```{r model, condition + gender}
+#to figure out which prior I need to make 
+get_prior(rt ~ condition+gender + (1 + condition|ID), data = data_ib)
+
+#Defining a prior OBS!
+prior_ib2 = c(prior(normal(0.5, 1.5), class = "Intercept"), 
+          prior(normal(0, 0.5), class = "b"), 
+          prior(normal(0, 0.5), class = "sigma"),
+          prior(normal(0, 0.1), class = "sd"))
+
+
+
+#Implicit model
+model_ib2_prior <- brm(rt ~ condition+gender + (1 + condition|ID),
+                    data = data_ib,
+                    family = gaussian(),
+                    prior = prior_ib,
+                    sample_prior = "only",
+                    cores = 2,
+                    chains = 2)
+
+
+pp_check(model_ib2_prior) #Doing a predictive prior check to test priors
+
+
+model_ib2 <- brm(rt ~ condition+gender + (1 + condition|ID),
                     data = data_ib,
                     family = gaussian(),
                     prior = prior_ib,
@@ -60,13 +102,66 @@ model_ib <- brm(rt ~ condition + (1 + condition|ID),
                     cores = 2,
                     chains = 4)
 
-summary(model_ib)
+summary(model_ib2)
+
 ```
+
+
+#Difference between gender and condition, interaction
+```{r model, condition + gender}
+#to figure out which prior I need to make 
+get_prior(rt ~ condition*gender + (1 + condition|ID), data = data_ib)
+
+#Defining a prior OBS!
+prior_ib3 = c(prior(normal(0.5, 1.5), class = "Intercept"), 
+          prior(normal(0, 0.5), class = "b"), 
+          prior(normal(0, 0.5), class = "sigma"),
+          prior(normal(0, 0.1), class = "sd"))
+
+
+
+#Implicit model
+model_ib3_prior <- brm(rt ~ condition*gender + (1 + condition|ID),
+                    data = data_ib,
+                    family = gaussian(),
+                    prior = prior_ib,
+                    sample_prior = "only",
+                    cores = 2,
+                    chains = 2)
+
+
+pp_check(model_ib3_prior) #Doing a predictive prior check to test priors
+
+
+model_ib3 <- brm(rt ~ condition*gender + (1 + condition|ID),
+                    data = data_ib,
+                    family = gaussian(),
+                    prior = prior_ib,
+                    sample_prior = TRUE,
+                    iter = 5000,
+                    warmup = 2000,
+                    cores = 2,
+                    chains = 4)
+
+summary(model_ib3)
+
+```
+
+
+
+#Implicit bias, Comparing models
+```{r waic, implicit}
+WAIC(model_ib1, model_ib2, model_ib3)
+```
+
 
 #Implicit bias, hypothesis testing
 ```{r}
-hypothesis(model_ib, "condition > 0")
+hypothesis(model_ib1, "condition > 0")
+hypothesis(model_ib2, "condition > 0")
+hypothesis(model_ib3, "condition > 0")
 ```
+
 
 ### EXPLICIT BIAS
 
