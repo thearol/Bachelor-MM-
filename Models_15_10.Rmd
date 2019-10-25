@@ -19,7 +19,7 @@ setwd("~/Bachelor-MM-/") #TRS
 #Loading data
 ```{r}
 data_ib <- read.csv("implicit_bias/data_ib.csv")[,2:12]
-data_eb <- read.csv("explicit_bias/eb_results.csv")[, 2:5]
+data_eb <- read.csv("explicit_bias/eb_results.csv")[, 2:6]
 data_db <- read.csv("decision_bias/disagree_sensitivity_db_wide.csv")[, 2:47]
 ```
 
@@ -146,42 +146,178 @@ Lav en model, der viser om mænd er mere sexistiske.
 
 Men det informerer ikkke spørgsmålet, om der et kønsbias synderligt, det den kun er rettet imod at beskrive kønnenes indstilling til kvinder?  
 
-```{r}
-#to figure out which prior we need to make
-get_prior(rt_log ~ condition + (condition|ID), data = data_ib)
+##Overall_score
 
-#Defining a prior 
-prior_ib1 = c(prior(normal(-0.4, 0.2), class = "Intercept"), 
-          prior(normal(0, 0.2), class = "b"), 
-          prior(normal(0, 0.2), class = "sigma"),
+```{r overall score, models}
+#to figure out which prior we need to make
+get_prior(overall_score ~ gender + (1|ID), data = data_eb)
+
+#Defining a prior, mean set to 2.5 because best conceptual meaning
+prior_eb1.1 = c(prior(normal(2.5, 0.5), class = "Intercept"), 
+          prior(normal(0, 0.5), class = "b"), 
+          prior(normal(0, 0.5), class = "sigma"),
+          prior(normal(0, 0.1), class = "sd"))
+
+#try and make a prior with mean set to 2 as it might make the model better
+prior_eb1.2 = c(prior(normal(2, 0.5), class = "Intercept"), 
+          prior(normal(0, 0.5), class = "b"), 
+          prior(normal(0, 0.5), class = "sigma"),
           prior(normal(0, 0.1), class = "sd"))
 
 
 
-#Implicit model
-model_ib1_prior <- brm(rt_log ~ condition + (condition|ID),
-                    data = data_ib,
+#Implicit models - check of both priors
+model_eb1.1_prior <- brm(overall_score ~ gender + (1|ID),
+                    data = data_eb,
                     family = gaussian(),
-                    prior = prior_ib1,
+                    prior = prior_eb1.1,
                     sample_prior = "only",
                     cores = 2,
                     chains = 2)
 
-
-pp_check(model_ib1_prior, nsamples = 100) #Doing a predictive prior check to test priors
-
-
-model_ib1 <- brm(rt_log ~ condition + (condition|ID),
-                    data = data_ib,
+model_eb1.2_prior <- brm(overall_score ~ gender + (1|ID),
+                    data = data_eb,
                     family = gaussian(),
-                    prior = prior_ib1,
+                    prior = prior_eb1.2,
+                    sample_prior = "only",
+                    cores = 2,
+                    chains = 2)
+
+#prior check for both priors
+pp_check(model_eb1.1_prior, nsamples = 100) #Doing a predictive prior check to test priors
+
+pp_check(model_eb1.2_prior, nsamples = 100)
+
+#models with both priors 
+model_eb1.1 <- brm(overall_score ~ gender + (1|ID),
+                    data = data_eb,
+                    family = gaussian(),
+                    prior = prior_eb1.1,
                     sample_prior = TRUE,
                     iter = 5000,
                     warmup = 2000,
                     cores = 4,
-                    chains = 4)
+                    chains = 4, 
+                    control = list(adapt_delta = 0.9))
 
-summary(model_ib1)
+model_eb1.2 <- brm(overall_score ~ gender + (1|ID),
+                    data = data_eb,
+                    family = gaussian(),
+                    prior = prior_eb1.2,
+                    sample_prior = TRUE,
+                    iter = 5000,
+                    warmup = 2000,
+                    cores = 4,
+                    chains = 4, 
+                    control = list(adapt_delta = 0.9)) 
+
+waic(model_eb1.1, model_eb1.2)
+
+summary(model_eb1.2)
+
+marginal_effects(model_eb1.2)
+
+summary(model_eb1.1)
+
+marginal_effects(model_eb1.1)
+
+#we will go with model eb1.1
+```
+
+##Benevolence predicted from gender and hostile score
+
+```{r}
+get_prior(benevolent_score ~ gender*hostile_score + (1|ID), data = data_eb)
+
+#Defining a prior, mean set to 2.5 because best conceptual meaning
+prior_eb2 = c(prior(normal(2.5, 0.5), class = "Intercept"), 
+          prior(normal(0, 0.5), class = "b"), 
+          prior(normal(0, 0.5), class = "sigma"),
+          prior(normal(0, 0.1), class = "sd"))
+
+model_eb2_prior <- brm(benevolent_score ~ gender*hostile_score + (1|ID),
+                    data = data_eb,
+                    family = gaussian(),
+                    prior = prior_eb2,
+                    sample_prior = "only",
+                    cores = 2,
+                    chains = 2)
+
+#prior check for both priors
+pp_check(model_eb2_prior, nsamples = 100) #Doing a predictive prior check to test priors
+
+#model
+model_eb2 <- brm(benevolent_score ~ gender*hostile_score + (1|ID),
+                    data = data_eb,
+                    family = gaussian(),
+                    prior = prior_eb2,
+                    sample_prior = TRUE,
+                    iter = 5000,
+                    warmup = 2000,
+                    cores = 4,
+                    chains = 4, 
+                    control = list(adapt_delta = 0.9))
+
+summary(model_eb2)
+
+#Plotting
+marginal_effects(model_eb2)
+
+plot(model_eb2)
+```
+
+
+##Hostility predicted from gender and benevolent score
+
+```{r}
+get_prior(hostile_score ~ gender*benevolent_score + (1|ID), data = data_eb)
+
+#Defining a prior, mean set to 2.5 because best conceptual meaning
+prior_eb3 = c(prior(normal(2.5, 0.5), class = "Intercept"), 
+          prior(normal(0, 0.5), class = "b"), 
+          prior(normal(0, 0.5), class = "sigma"),
+          prior(normal(0, 0.1), class = "sd"))
+
+model_eb3_prior <- brm(hostile_score ~ gender*benevolent_score + (1|ID),
+                    data = data_eb,
+                    family = gaussian(),
+                    prior = prior_eb3,
+                    sample_prior = "only",
+                    cores = 2,
+                    chains = 2)
+
+#prior check for both priors
+pp_check(model_eb3_prior, nsamples = 100) #Doing a predictive prior check to test priors
+
+#model
+model_eb3 <- brm(hostile_score ~ gender*benevolent_score + (1|ID),
+                    data = data_eb,
+                    family = gaussian(),
+                    prior = prior_eb3,
+                    sample_prior = TRUE,
+                    iter = 5000,
+                    warmup = 2000,
+                    cores = 4,
+                    chains = 4, 
+                    control = list(adapt_delta = 0.9))
+
+summary(model_eb3)
+
+#Plotting
+marginal_effects(model_eb3)
+
+plot(model_eb3)
+```
+
+##Hypothesis testing
+```{r}
+#There is no difference between females and males in overall sexism score
+hypothesis(model_eb1.1, "genderMale = 0")
+
+#There is a correlation between benevolent score and hostile score
+hypothesis(model_eb2, "hostile_score > 0")
+
+#INTERACTION something something we reached here!!!!!
 ```
 
 
