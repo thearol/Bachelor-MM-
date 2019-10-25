@@ -24,11 +24,7 @@ data_db <- read.csv("decision_bias/disagree_sensitivity_db_wide.csv")[, 2:47]
 ```
 
 
-```{r histogram of log transformed }
-hist(data_ib$rt_log)
-```
-
-### IMPLICIT BIAS, MODELS
+#IMPLICIT BIAS, MODELS
 
 ```{r implicit model, condition}
 
@@ -77,7 +73,7 @@ marginal_effects(model_ib1)
 
 
 
-#Difference between gender and condition, interaction
+##Difference between gender and condition, interaction
 ```{r model, condition + gender}
 #to figure out which prior I need to make 
 get_prior(rt ~  condition*gender + (condition|ID), data = data_ib)
@@ -127,7 +123,7 @@ plot(model_ib2)
 
 
 
-#Implicit bias, Comparing models
+##Implicit bias, Comparing models
 ```{r waic, implicit}
 waic(model_ib1, model_ib2)
 
@@ -138,24 +134,67 @@ loo_compare(waic1, waic2)
 ```
 
 
-#Implicit bias, hypothesis testing
+##Implicit bias, hypothesis testing
 ```{r}
 hypothesis(model_ib1, "condition > 0")
 hypothesis(model_ib2, "condition = condition + condition:genderMale")
 ```
 
-
-### EXPLICIT BIAS
+#EXPLICIT BIAS
 
 Lav en model, der viser om mænd er mere sexistiske. 
 
 Men det informerer ikkke spørgsmålet, om der et kønsbias synderligt, det den kun er rettet imod at beskrive kønnenes indstilling til kvinder?  
 
-### DECISION BIAS
+```{r}
+#to figure out which prior we need to make
+get_prior(rt_log ~ condition + (condition|ID), data = data_ib)
+
+#Defining a prior 
+prior_ib1 = c(prior(normal(-0.4, 0.2), class = "Intercept"), 
+          prior(normal(0, 0.2), class = "b"), 
+          prior(normal(0, 0.2), class = "sigma"),
+          prior(normal(0, 0.1), class = "sd"))
+
+
+
+#Implicit model
+model_ib1_prior <- brm(rt_log ~ condition + (condition|ID),
+                    data = data_ib,
+                    family = gaussian(),
+                    prior = prior_ib1,
+                    sample_prior = "only",
+                    cores = 2,
+                    chains = 2)
+
+
+pp_check(model_ib1_prior, nsamples = 100) #Doing a predictive prior check to test priors
+
+
+model_ib1 <- brm(rt_log ~ condition + (condition|ID),
+                    data = data_ib,
+                    family = gaussian(),
+                    prior = prior_ib1,
+                    sample_prior = TRUE,
+                    iter = 5000,
+                    warmup = 2000,
+                    cores = 4,
+                    chains = 4)
+
+summary(model_ib1)
+```
+
+
+#DECISION BIAS
 
 Lav modeller magen til dem fra sidste semester
 
-### GENDER BIAS
+#GENDER BIAS
 
 Lav modeller, der kombinerer data fra de tre forskellige dele. 
+
+
+
+
+
 

@@ -17,7 +17,11 @@ p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, re
 
 #Loading data
 ```{r loading data}
-path_eb = "~/Cognitive Science/5. Semester/Bachelor, MM/GIT/Bachelor-MM-/explicit_bias/explicit_data/"
+#path_eb = "~/Cognitive Science/5. Semester/Bachelor, MM/GIT/Bachelor-MM-/explicit_bias/explicit_data/"
+
+setwd("~/Bachelor-MM-/explicit_bias") #TRS
+
+path_eb = "explicit_data/" #TRS
 
 #Listing files in path
 files <- list.files(path = path_eb)
@@ -85,13 +89,19 @@ eb_results_benevolent <- eb_data %>%filter(eb_data$QuestionNumber %in% benevolen
 
 #Creating Results file
 ```{r}
+
 #Merge the results frame
 eb_results <- full_join(eb_results_benevolent, eb_results_hostile)
 
 #Creating overall score
 eb_results$overall_score <- (eb_results$benevolent_score+eb_results$hostile_score)/2
 
+
+#add column of gender 
+eb_results$gender <- eb_results$ID %% 2
+eb_results$gender <-ifelse(eb_results$gender == 0, "Female", "Male")
+
 #Creating csv-file
-write.csv(eb_results, file = "eb_results.csv")
+write.csv(eb_results, file = "explicit_bias/eb_results.csv")
 ```
 
