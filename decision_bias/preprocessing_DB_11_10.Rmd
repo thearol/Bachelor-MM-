@@ -124,7 +124,7 @@ disagree_db <- na.omit(data_db)
 
 ```
 
-```{r save clean data files}
+```{r save clean data files, eval=F}
 
 write.csv(data_db, file = "data_db.csv")
 write.csv(disagree_db, file = "disagree_db.csv")

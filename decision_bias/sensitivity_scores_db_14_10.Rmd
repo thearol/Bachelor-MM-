@@ -18,6 +18,7 @@ setwd("~/Bachelor-MM-/decision_bias")
 
 #data
 data_db <- read.csv("data_db.csv")
+disagree_db <- read.csv("disagree_db.csv")
 
 ```
 
@@ -141,7 +142,6 @@ sensitivity_scores <- sensitivity_scores[,2:4]
 
 #Plotting the model 
 
-
 ```{r slopes for individuals in single plots}
 marginal_effects(
   m_sensitivity,
@@ -150,7 +150,6 @@ marginal_effects(
   re_formula = NULL
   )
 ```
-
 
 ```{r marginal effects, classic }
 marginal_effects(m_sensitivity)
@@ -201,7 +200,6 @@ sjp.lmer(m_sensitivity, vars = "c12hour", type = "ri.slope")
 
 ```{r merge sensitivity scores with long_data_db}
 long_data_db <- merge(long_data_db,sensitivity_scores, by="SubjectID_unique")
-
 ```
 
 
@@ -238,42 +236,90 @@ colnames(sensitivity_scores_left) <-  c("Intercept_left", "Slope_left", "Subject
 colnames(sensitivity_scores_right) <-  c("Intercept_right", "Slope_right", "SubjectID_right_unique")
 
 #Merging left data
-disagree_db <- merge(disagree_db, sensitivity_scores_left, by = "SubjectID_left_unique", all.x = TRUE, all.y = TRUE )
+disagree_db_wide <- merge(disagree_db, sensitivity_scores_left, by = "SubjectID_left_unique", all.x = TRUE, all.y = TRUE )
 
 #Merging right data
-disagree_db <- merge(disagree_db, sensitivity_scores_right, by = "SubjectID_right_unique", all.x = TRUE, all.y = TRUE )
+disagree_db_wide <- merge(disagree_db_wide, sensitivity_scores_right, by = "SubjectID_right_unique", all.x = TRUE, all.y = TRUE )
 
 #deselect X
-disagree_db <- subset(disagree_db, select = -c(X))
+disagree_db_wide <- subset(disagree_db_wide, select = -c(X))
 
 
 ```
 
 #Excluding KK from the data 
 ```{r}
-disagree_db <- filter(disagree_db, group_id != "25_KK_27" & group_id != "25_KK_28")
+disagree_db_wide <- filter(disagree_db_wide, group_id != "25_KK_27" & group_id != "25_KK_28")
 ```
 
 
-#Skill difference
+#Skill difference, wide format
 
 ```{r calculating skill difference}
-disagree_db$skill_dif <- 0 #Creating column of 0
-disagree_db$skill_dif <- ifelse(disagree_db$chosen_leader == "Left_lead", disagree_db$Slope_left/disagree_db$Slope_right, disagree_db$Slope_right/disagree_db$Slope_left) #calculating skill difference as a ratio between leader and follower sensitivity
+disagree_db_wide$skill_dif <- 0 #Creating column of 0
+disagree_db_wide$skill_dif <- ifelse(disagree_db_wide$chosen_leader == "Left_lead", disagree_db_wide$Slope_left/disagree_db_wide$Slope_right, disagree_db_wide$Slope_right/disagree_db_wide$Slope_left) #calculating skill difference as a ratio between leader and follower sensitivity
+
 
 ```
 
 
-#Plotting skill difference
-```{r}
-hist(disagree_db$skill_dif)
+#Back to long format (to use in model)
+
+```{r make long format}
+
+#create dataframe with only data from left player
+disagree_left <- disagree_db_wide %>% select(-contains('right'))
+
+
+#make sure there is only the relevent information ofr the participant
+disagree_left$skill_dif[disagree_left$chosen_leader != 'Left_lead'] <- NA #insert NAs for chosen leader if not left
+
+disagree_left$leader_behavior[disagree_left$chosen_leader != 'Left_lead'] <- NA #insert NAs for chosen leader if not left
+disagree_left$Leader_gender[disagree_left$chosen_leader != 'Left_lead'] <- NA #insert NAs for chosen leader if not left
+
+disagree_left$Follower_gender[disagree_left$chosen_leader != 'Left_lead'] <- NA #insert NAs for chosen leader if not left
+
+#create dataframe with only data from right player
+disagree_right <- disagree_db_wide %>% select(-contains('left'))
+
+#make sure there is only the relevent information ofr the participant
+disagree_right$skill_dif[disagree_right$chosen_leader != 'Right_lead'] <- NA #insert NAs for chosen leader if not left
+
+disagree_right$leader_behavior[disagree_right$chosen_leader != 'Right_lead'] <- NA #insert NAs for chosen leader if not left
+disagree_right$Leader_gender[disagree_right$chosen_leader != 'Right_lead'] <- NA #insert NAs for chosen leader if not left
+
+disagree_right$Follower_gender[disagree_right$chosen_leader != 'Right_lead'] <- NA #insert NAs for chosen leader if not left
+
+
+#rename columns to not contain left or right
+names(disagree_left) <- gsub(pattern = "_left", replacement = "", x = names(disagree_left))
+
+names(disagree_right) <- gsub(pattern = "_right", replacement = "", x = names(disagree_right))
+
+
+#make same type of column in subject
+disagree_right$SubjectID <- as.factor(disagree_right$SubjectID)
+disagree_left$SubjectID <- as.factor(disagree_left$SubjectID)
+
+#make column that specifies side
+disagree_right$Side <- as.factor("right")
+disagree_left$Side <- as.factor("left")
+
+
+#Joining the dataframes
+disagree_db_long <- rbind(disagree_left, disagree_right)
+
+#remove nas from data, so only containing leader information 
+disagree_db_long <- na.omit(disagree_db_long)
+
 ```
 
 
 #Write CSV
-```{r creating CSV}
+```{r creating CSV, eval=F}
 
-write.csv(disagree_db, file = "disagree_sensitivity_db_wide.csv")
+write.csv(disagree_db_wide, file = "disagree_sensitivity_db_wide.csv")
+write.csv(disagree_db_long, file = "disagree_sensitivity_db_long.csv")
 
 ```
 

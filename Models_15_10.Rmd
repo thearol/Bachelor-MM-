@@ -8,7 +8,7 @@ output: html_document
 #Getting packages
 ```{r loading packages, include = FALSE}
 library(pacman)
-p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm)
+p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel)
 ```
 
 #Setting directory
@@ -20,7 +20,7 @@ setwd("~/Bachelor-MM-/") #TRS
 ```{r}
 data_ib <- read.csv("implicit_bias/data_ib.csv")[,2:12]
 data_eb <- read.csv("explicit_bias/eb_results.csv")[, 2:6]
-data_db <- read.csv("decision_bias/disagree_sensitivity_db_wide.csv")[, 2:47]
+data_db <- read.csv("decision_bias/disagree_sensitivity_db_long.csv")[, 1:34]
 ```
 
 
@@ -339,9 +339,6 @@ hypothesis(model_eb3, "genderMale:benevolent_score = 0")
 #There is a correlation between hostile score and benevolent score
 hypothesis(model_eb3, "benevolent_score > 0")
 
-
-
-
 ```
 
 
@@ -349,6 +346,161 @@ hypothesis(model_eb3, "benevolent_score > 0")
 
 Lav modeller magen til dem fra sidste semester
 
+##Are men better than women? (ooooops, we did it again... look at this later!!!! (if we exclude skill in the model))
+```{r is men better than women regression, include = FALSE}
+
+#Defining priors
+prior_skill_gender_db <- c(
+  prior(normal(0, 0.2),class="Intercept"),
+  prior(normal(0,0.1),class="b"),
+  prior(normal(0,0.2), class= "sd", coef = "diff", group = "ID"),
+  prior(normal(0,0.1), class= "sd", coef = "Intercept", group = "ID")
+)
+
+# Model w skill difference
+skill_gender_db <- brm(
+  answer ~ diff + diff:Gender + (1+diff|ID), 
+  data = data_db,
+  prior = prior_skill_gender_db,
+  family = "bernoulli",
+  sample_prior=T,
+  seed = 123, # Adding a seed makes results reproducible.
+  cores=2,
+  chains=2
+) 
+
+summary(skill_mf)
+
+prior_mf_correct <- c(
+  prior(normal(0, 0.2),class="Intercept"),
+  prior(normal(0,0.1),class="b")
+  )
+
+
+correct_mf <- brm(
+  correct ~ Gender, 
+  data = pool_long,
+  prior = prior_mf_correct,
+  family = "bernoulli",
+  sample_prior=T,
+  seed = 123, # Adding a seed makes results reproducible.
+  cores=2,
+  chains=2
+) 
+
+summary(correct_mf)
+
+
+male <- subset(pool_long, Gender == "Male")
+
+female <- subset(pool_long, Gender == "Female")
+
+table(male$correct)
+
+table(female$correct)
+
+```
+ 
+
+
+
+
+
+
+##Analysis from last year (excluding skill difference)
+
+```{r}
+
+#Defining priors
+prior_db1 <- c(
+  prior(normal(0,.2),class="b"),
+  prior(normal(0,.1),class="sd")
+)
+
+#prior predictive check
+model_db1_prior <- brm(leader_behavior ~ 0 + Leader_gender : Follower_gender + (0 + skill_dif:Follower_gender | SubjectID), 
+                       prior = prior_db1, 
+                       data = data_db, 
+                       sample_prior = "only",
+                       iter = 4000, 
+                       family = "bernoulli", 
+                       chains = 2, 
+                       cores = 2)
+
+pp_check(model_db1_prior, nsamples = 100)
+
+
+model_db1 <- brm(
+  leader_behavior ~ 0 + Leader_gender : Follower_gender + ( 0 + skill_dif : Follower_gender | SubjectID),
+  data = data_db,
+  prior = prior_db1,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4
+  #control = list(adapt_delta = 0.9) 
+) 
+summary(model_db1)
+```
+
+
+# H1: there is a leader effect: male leaders tend to surrender less than female leaders
+```{r H1: there is a leader effect: male leaders tend to surrender less than female leaders}
+#H1: In general male leader tend to surrender less than female leaders
+
+hypothesis(model_db1, "(Leader_genderMale:Follower_genderMale + Leader_genderMale:Follower_genderFemale)/2 < (Leader_genderFemale:Follower_genderMale + Leader_genderFemale:Follower_genderMale)/2")
+
+
+
+```
+
+
+
+#H2: there is a follower effect: leaders tend to surrender more to men than to women
+```{r H2: there is a follower effect: leaders tend to surrender more to men than to women }
+
+# H2: There is a follower effect: leaders tend to surrender more to men than to women
+hypothesis(model_db1, "(Leader_genderMale:Follower_genderMale + Leader_genderFemale:Follower_genderMale)/2 > (Leader_genderMale:Follower_genderFemale + Leader_genderFemale:Follower_genderFemale)/2")
+
+
+```
+
+
+
+```{r H3: there is an interaction, males are more discriminative as to their followers gender than females are }
+# H3: There is an interaction: males are more discriminative as to their followers gender than females are
+
+hypothesis(model_db1, "(Leader_genderMale:Follower_genderMale - Leader_genderMale:Follower_genderFemale) > (Leader_genderFemale:Follower_genderMale - Leader_genderFemale:Follower_genderFemale)")
+
+
+```
+
+#PLOTTING
+
+```{r prepare predictions}
+8+8
+#create newdata to make predictions from 
+nd <- expand.grid(tibble(
+         Follower_gender=factor(0:1) %>% rep(., times = 10),
+         Leader_gender = factor(0:1) %>% rep(., times = 10),
+         SubjectID = NA))
+
+#predict probabilities for surrender, use fitted to get upper and lower quantile measures in probabilities
+
+pred <-
+  predict(m_0, newdata = nd, re_formula = ~ (0 + Follower_gender | Subject)) %>%  # we can use the same nd data from last time
+  as_tibble() %>%
+  bind_cols(nd)
+
+pred$Leader_gender <- as.character(pred$Leader_gender)
+pred$Follower_gender <- as.character(pred$Follower_gender)
+
+
+pred$Follower_gender[pred$Follower_gender == 0] <- "Male"
+pred$Follower_gender[pred$Follower_gender == 1] <- "Female"
+pred$Leader_gender[pred$Leader_gender == 0] <- "Male"
+pred$Leader_gender[pred$Leader_gender == 1] <- "Female"
 
 
 
