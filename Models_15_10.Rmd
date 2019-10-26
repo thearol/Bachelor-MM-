@@ -221,6 +221,8 @@ summary(model_eb1.1)
 
 marginal_effects(model_eb1.1)
 
+plot(model_eb1.1)
+
 #we will go with model eb1.1
 ```
 
@@ -311,19 +313,44 @@ plot(model_eb3)
 
 ##Hypothesis testing
 ```{r}
+#Model 1
 #There is no difference between females and males in overall sexism score
 hypothesis(model_eb1.1, "genderMale = 0")
+
+
+#Model 2
+#There is no difference in benevolence score across gender
+hypothesis(model_eb2, "genderMale = 0")
+
+#There is no difference in benevolent score across gender as an effect of hostile score
+hypothesis(model_eb2, "genderMale:hostile_score = 0")
 
 #There is a correlation between benevolent score and hostile score
 hypothesis(model_eb2, "hostile_score > 0")
 
-#INTERACTION something something we reached here!!!!!
+
+#Model 3
+#There is no difference in hostile score across gender
+hypothesis(model_eb3, "genderMale = 0")
+
+#There is no difference in hostile score across gender as an effect of benevolent score
+hypothesis(model_eb3, "genderMale:benevolent_score = 0")
+
+#There is a correlation between hostile score and benevolent score
+hypothesis(model_eb3, "benevolent_score > 0")
+
+
+
+
 ```
 
 
 #DECISION BIAS
 
 Lav modeller magen til dem fra sidste semester
+
+
+
 
 #GENDER BIAS
 
