@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r loading packages and data}
 library(pacman)
-p_load(plotly, jpeg, tm, brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, stringr, here, brmstools, data.table)
+p_load(plotly, jpeg, tm, brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, stringr, here, brmstools, data.table, mousetrap)
 
 #setting working directory
 setwd("~/Bachelor-MM-/decision_bias")
@@ -95,8 +95,8 @@ m_sensitivity <- brm(
   prior = prior_sensitivity,
   family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
   seed = 123,# Adding a seed makes results reproducible.
-  cores=2,
-  chains=2,
+  cores=4,
+  chains=4,
   control = list(adapt_delta = 0.9)
 ) 
 
@@ -137,6 +137,11 @@ sensitivity_scores$SubjectID_unique <- as.character(sensitivity_scores$Row.Names
 sensitivity_scores <- sensitivity_scores[,2:4]
 
 
+```
+
+
+```{r merge sensitivity scores with long_data_db}
+long_data_db <- merge(long_data_db,sensitivity_scores, by="SubjectID_unique")
 ```
 
 
@@ -198,10 +203,6 @@ sjp.lmer(m_sensitivity, vars = "c12hour", type = "ri.slope")
  
 ```
 
-```{r merge sensitivity scores with long_data_db}
-long_data_db <- merge(long_data_db,sensitivity_scores, by="SubjectID_unique")
-```
-
 
 #Making wide format with results from the sensitivity model
 ```{r create dataframe that only contains the columns which we would like to merge into wide format}
@@ -253,7 +254,7 @@ disagree_db_wide <- filter(disagree_db_wide, group_id != "25_KK_27" & group_id !
 ```
 
 
-#Skill difference, wide format
+#Skill difference
 
 ```{r calculating skill difference}
 disagree_db_wide$skill_dif <- 0 #Creating column of 0
@@ -261,6 +262,28 @@ disagree_db_wide$skill_dif <- ifelse(disagree_db_wide$chosen_leader == "Left_lea
 
 
 ```
+
+#Confidence difference
+
+```{r calculating confidence difference }
+#Making the responses absolute numbers
+disagree_db_wide$Response_left_abs<- abs(disagree_db_wide$Response_left)
+disagree_db_wide$Response_right_abs<- abs(disagree_db_wide$Response_right)
+
+#Left response scaled
+disagree_db_wide <- scale_within(disagree_db_wide, variables = "Response_left", within = "SubjectID_left", center = TRUE, scale = TRUE, prefix = "z_")
+
+#Right response scaled
+disagree_db_wide <- scale_within(disagree_db_wide, variables = "Response_right", within = "SubjectID_right", center = TRUE, scale = TRUE, prefix = "z_")
+
+#Creating ratio
+disagree_db_wide$conf_dif <- 0 #Creating column of 0
+disagree_db_wide$conf_dif <- ifelse(disagree_db_wide$chosen_leader == "Left_lead", disagree_db_wide$z_Response_left/disagree_db_wide$z_Response_right, disagree_db_wide$z_Response_right/disagree_db_wide$z_Response_left) #calculating confidence difference as a ratio between leader and follower confidence
+
+#Scale to reduce extreme values
+disagree_db_wide$conf_dif_z <-scale(disagree_db_wide$conf_dif)
+```
+
 
 
 #Back to long format (to use in model)
@@ -311,6 +334,11 @@ disagree_db_long <- rbind(disagree_left, disagree_right)
 
 #remove nas from data, so only containing leader information 
 disagree_db_long <- na.omit(disagree_db_long)
+
+```
+
+
+```{r create ratio of confidence difference}
 
 ```
 
