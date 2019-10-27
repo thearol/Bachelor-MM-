@@ -20,7 +20,7 @@ setwd("~/Bachelor-MM-/") #TRS
 ```{r}
 data_ib <- read.csv("implicit_bias/data_ib.csv")[,2:12]
 data_eb <- read.csv("explicit_bias/eb_results.csv")[, 2:6]
-data_db <- read.csv("decision_bias/disagree_sensitivity_db_long.csv")[, 1:34]
+data_db <- read.csv("decision_bias/disagree_sensitivity_db_long.csv")[, 2:38]
 ```
 
 
@@ -407,9 +407,10 @@ table(female$correct)
 
 
 
+
 ##Analysis from last year (excluding skill difference)
 
-```{r}
+```{r model excluding skill dif, replication of effects from last year}
 
 #Defining priors
 prior_db1 <- c(
@@ -444,20 +445,220 @@ model_db1 <- brm(
 summary(model_db1)
 ```
 
+```{r full model}
+#Defining priors
+prior_db2 <- c(
+  prior(normal(0,.2),class="b"),
+  prior(normal(0,.1),class="sd")
+)
 
-# H1: there is a leader effect: male leaders tend to surrender less than female leaders
+#prior predictive check
+model_db2_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + skill_dif:Follower_gender | SubjectID), 
+                       prior = prior_db2, 
+                       data = data_db, 
+                       sample_prior = "only",
+                       iter = 4000, 
+                       family = "bernoulli", 
+                       chains = 2, 
+                       cores = 2)
+
+pp_check(model_db2_prior, nsamples = 100)
+
+
+model_db2 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + skill_dif:Follower_gender | SubjectID),
+  data = data_db,
+  prior = prior_db2,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4
+  #control = list(adapt_delta = 0.9) 
+) 
+summary(model_db2)
+```
+
+```{r model without gender, both follower and leader}
+#Defining priors
+prior_db3 <- c(
+  prior(normal(0,.2),class="b"),
+  prior(normal(0,.1),class="sd")
+)
+
+#prior predictive check
+model_db3_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif+ (0 + skill_dif:Follower_gender | SubjectID), 
+                       prior = prior_db3, 
+                       data = data_db, 
+                       sample_prior = "only",
+                       iter = 4000, 
+                       family = "bernoulli", 
+                       chains = 2, 
+                       cores = 2)
+
+pp_check(model_db3_prior, nsamples = 100)
+
+
+model_db3 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif+ (0 + skill_dif:Follower_gender | SubjectID),
+  data = data_db,
+  prior = prior_db3,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4
+  #control = list(adapt_delta = 0.9) 
+) 
+summary(model_db3)
+```
+
+```{r model without confidence}
+#Defining priors
+prior_db4 <- c(
+  prior(normal(0,.2),class="b"),
+  prior(normal(0,.1),class="sd")
+)
+
+#prior predictive check
+model_db4_prior <- brm(leader_behavior ~ 0 + skill_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID), 
+                       prior = prior_db4, 
+                       data = data_db, 
+                       sample_prior = "only",
+                       iter = 4000, 
+                       family = "bernoulli", 
+                       chains = 2, 
+                       cores = 2)
+
+pp_check(model_db4_prior, nsamples = 100)
+
+
+model_db4 <- brm(leader_behavior ~ 0 +skill_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID),
+  data = data_db,
+  prior = prior_db4,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4
+  #control = list(adapt_delta = 0.9) 
+) 
+summary(model_db4)
+```
+
+```{r model without skill difference}
+#Defining priors
+prior_db5 <- c(
+  prior(normal(0,.2),class="b"),
+  prior(normal(0,.1),class="sd")
+)
+
+#prior predictive check
+model_db5_prior <- brm(leader_behavior ~ 0 + conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID), 
+                       prior = prior_db5, 
+                       data = data_db, 
+                       sample_prior = "only",
+                       iter = 4000, 
+                       family = "bernoulli", 
+                       chains = 2, 
+                       cores = 2)
+
+pp_check(model_db5_prior, nsamples = 100)
+
+
+model_db5 <- brm(leader_behavior ~ 0 +conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID),
+  data = data_db,
+  prior = prior_db5,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4
+  #control = list(adapt_delta = 0.9) 
+) 
+summary(model_db5)
+```
+
+```{r model only with follower}
+#Defining priors
+prior_db6 <- c(
+  prior(normal(0,.2),class="b"),
+  prior(normal(0,.1),class="sd")
+)
+
+#prior predictive check
+model_db6_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Follower_gender + (0 + skill_dif:Follower_gender | SubjectID), 
+                       prior = prior_db6, 
+                       data = data_db, 
+                       sample_prior = "only",
+                       iter = 4000, 
+                       family = "bernoulli", 
+                       chains = 2, 
+                       cores = 2)
+
+pp_check(model_db6_prior, nsamples = 100)
+
+
+model_db6 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Follower_gender + (0 + skill_dif:Follower_gender | SubjectID),
+  data = data_db,
+  prior = prior_db6,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4
+  #control = list(adapt_delta = 0.9) 
+) 
+summary(model_db6)
+```
+
+```{r model with only leader gender}
+#Defining priors
+prior_db7 <- c(
+  prior(normal(0,.2),class="b"),
+  prior(normal(0,.1),class="sd")
+)
+
+#prior predictive check
+model_db7_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + skill_dif:Follower_gender | SubjectID), 
+                       prior = prior_db7, 
+                       data = data_db, 
+                       sample_prior = "only",
+                       iter = 4000, 
+                       family = "bernoulli", 
+                       chains = 2, 
+                       cores = 2)
+
+pp_check(model_db7_prior, nsamples = 100)
+
+
+model_db7 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + skill_dif:Follower_gender | SubjectID),
+  data = data_db,
+  prior = prior_db7,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4
+  #control = list(adapt_delta = 0.9) 
+) 
+summary(model_db7)
+```
+
+```{r waic}
+waic(model_db1, model_db2, model_db3, model_db4, model_db5, model_db6, model_db7)
+```
+
+## Hypothesis testing
+###H1: there is a leader effect: male leaders tend to surrender less than female leaders
 ```{r H1: there is a leader effect: male leaders tend to surrender less than female leaders}
 #H1: In general male leader tend to surrender less than female leaders
 
 hypothesis(model_db1, "(Leader_genderMale:Follower_genderMale + Leader_genderMale:Follower_genderFemale)/2 < (Leader_genderFemale:Follower_genderMale + Leader_genderFemale:Follower_genderMale)/2")
 
-
-
 ```
 
 
 
-#H2: there is a follower effect: leaders tend to surrender more to men than to women
+###H2: there is a follower effect: leaders tend to surrender more to men than to women
 ```{r H2: there is a follower effect: leaders tend to surrender more to men than to women }
 
 # H2: There is a follower effect: leaders tend to surrender more to men than to women
@@ -476,7 +677,7 @@ hypothesis(model_db1, "(Leader_genderMale:Follower_genderMale - Leader_genderMal
 
 ```
 
-#PLOTTING
+###PLOTTING
 
 ```{r prepare predictions by THEA }
 nd <- expand.grid(tibble(
@@ -516,7 +717,7 @@ H1
 
 
 
-# H2: plotting
+### H2: plotting
 ```{r}
 
 #create the plot
@@ -536,7 +737,7 @@ H2
 
 
 
-# H3: plotting
+### H3: plotting
 ```{r}
 
 marginal_effects(model_db1)
