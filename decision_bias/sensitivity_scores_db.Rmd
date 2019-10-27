@@ -270,10 +270,10 @@ disagree_db_wide$Response_left_abs<- abs(disagree_db_wide$Response_left)
 disagree_db_wide$Response_right_abs<- abs(disagree_db_wide$Response_right)
 
 #Left response scaled
-disagree_db_wide <- scale_within(disagree_db_wide, variables = "Response_left", within = "SubjectID_left_unique", center = TRUE, scale = TRUE, prefix = "z_")
+disagree_db_wide <- scale_within(disagree_db_wide, variables = "Response_left", within = "SubjectID_left", center = TRUE, scale = TRUE, prefix = "z_")
 
 #Right response scaled
-disagree_db_wide <- scale_within(disagree_db_wide, variables = "Response_right", within = "SubjectID_right_unique", center = TRUE, scale = TRUE, prefix = "z_")
+disagree_db_wide <- scale_within(disagree_db_wide, variables = "Response_right", within = "SubjectID_right", center = TRUE, scale = TRUE, prefix = "z_")
 
 #Creating ratio
 disagree_db_wide$conf_dif <- 0 #Creating column of 0
