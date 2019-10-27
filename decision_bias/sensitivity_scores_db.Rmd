@@ -62,7 +62,7 @@ long_data_db <- rbind(left, right)
 
 ## Create models for sensitivity scores
 
-```{r get priors, define priors and prior predictive check, eval=FALSE}
+```{r get priors, define priors and prior predictive check}
 
 #use get prior function
 get_prior(response_dummy ~ diff + (1 + diff|SubjectID_unique), family = "bernoulli", data = long_data_db)
@@ -91,7 +91,7 @@ pp_check(prior_check_sensitivity,nsamples = 100)
 ```
 
 
-```{r sensitivity model , eval=FALSE}
+```{r sensitivity model}
 #Making the model - using answer
 m_sensitivity <- brm(
   response_dummy ~ diff + (1+diff|SubjectID_unique),
@@ -339,7 +339,7 @@ disagree_db_long <- na.omit(disagree_db_long)
 
 
 #Write CSV
-```{r creating CSV, eval=F}
+```{r creating CSV}
 
 write.csv(disagree_db_wide, file = "disagree_sensitivity_db_wide.csv")
 write.csv(disagree_db_long, file = "disagree_sensitivity_db_long.csv")
