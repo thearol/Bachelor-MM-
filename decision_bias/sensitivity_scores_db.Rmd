@@ -62,7 +62,7 @@ long_data_db <- rbind(left, right)
 
 ## Create models for sensitivity scores
 
-```{r get priors, define priors and prior predictive check}
+```{r get priors, define priors and prior predictive check, eval = FALSE}
 
 #use get prior function
 get_prior(response_dummy ~ diff + (1 + diff|SubjectID_unique), family = "bernoulli", data = long_data_db)
@@ -91,7 +91,7 @@ pp_check(prior_check_sensitivity,nsamples = 100)
 ```
 
 
-```{r sensitivity model}
+```{r sensitivity model, eval = FALSE}
 #Making the model - using answer
 m_sensitivity <- brm(
   response_dummy ~ diff + (1+diff|SubjectID_unique),
@@ -150,7 +150,7 @@ long_data_db <- merge(long_data_db,sensitivity_scores, by="SubjectID_unique")
 
 #Plotting the model 
 
-```{r slopes for individuals in single plots}
+```{r slopes for individuals in single plots, eval = FALSE}
 marginal_effects(
   m_sensitivity,
   "diff", 
@@ -159,7 +159,7 @@ marginal_effects(
   )
 ```
 
-```{r marginal effects, classic }
+```{r marginal effects, classic, eval = FALSEW }
 marginal_effects(m_sensitivity)
 ```
 
@@ -274,44 +274,10 @@ disagree_db_wide <- scale_within(disagree_db_wide, variables = "Response_left_ab
 
 #Right response scaled
 disagree_db_wide <- scale_within(disagree_db_wide, variables = "Response_right_abs", within = "SubjectID_right_unique", center = TRUE, scale = TRUE, prefix = "z_")
-# 
-# #Mean center responses
-# mean_centered_resp_right <- data.frame(matrix(ncol=2))#creating empty data frame
-# n = 1
-# 
-# for (i in unique(disagree_db_wide$SubjectID_right_unique)){
-#     tempdata <- subset(disagree_db_wide, SubjectID_right_unique==i)
-#     mean_centered_resp[n,1] <- i
-#     mean_centered_resp[n,2] <- tempdata$Response_right_abs - mean(tempdata$Response_right_abs)
-#     n=n+1
-# }
-# 
-# mean_centered_resp_left <- data.frame(matrix(ncol=2))#creating empty data frame
-# n = 1
-# 
-# for (i in unique(disagree_db_wide$SubjectID_left_unique)){
-#     tempdata <- subset(disagree_db_wide, ID==i)
-#     mean_centered_resp_left[n,1] <- i
-#     mean_centered_resp_left[n,2] <- tempdata$Response_left_abs - mean(tempdata$Response_left_abs)
-#     n=n+1
-#   }
-# 
-# colnames(mean_centered_resp_left) <-  c("SubjectID_left_unique", "Response_mc_left")
-# colnames(mean_centered_resp_right) <-  c("SubjectID_right_unique", "Response_mc_right")
-# 
-# #Merging left data
-# disagree_db_wide <- merge(disagree_db_wide, mean_centered_resp_left, by = "SubjectID_left_unique", all.x = TRUE, all.y = TRUE )
-# 
-# disagree_db_wide <- merge(disagree_db_wide, mean_centered_resp_right, by = "SubjectID_right_unique", all.x = TRUE, all.y = TRUE )
-
 
 #Creating ratio
 disagree_db_wide$conf_dif <- 0 #Creating column of 0
 disagree_db_wide$conf_dif <- ifelse(disagree_db_wide$chosen_leader == "Left_lead", disagree_db_wide$Response_left_abs/disagree_db_wide$Response_right_abs, disagree_db_wide$Response_right_abs/disagree_db_wide$Response_left_abs) #calculating confidence difference as a ratio between leader and follower confidence
-# 
-# #Creating ratio using mean centered
-# disagree_db_wide$conf_dif <- 0 #Creating column of 0
-# disagree_db_wide$conf_dif <- ifelse(disagree_db_wide$chosen_leader == "Left_lead", disagree_db_wide$Response_left_abs/disagree_db_wide$Response_right_abs, disagree_db_wide$Response_right_abs/disagree_db_wide$Response_left_abs) #calculating confidence difference as a ratio between leader and follower confidence
 
 ```
 
@@ -372,6 +338,11 @@ disagree_db_long <- na.omit(disagree_db_long)
 
 ```
 
+
+#Dummy coding the leader behaviour variabel
+```{r dummy coding the leader bevhaiour}
+disagree_db_long$leader_behavior <- ifelse(disagree_db_long$leader_behavior == "surrender", 1, 0)
+```
 
 
 #Write CSV
