@@ -391,7 +391,7 @@ prior_db2 <- c(
 )
 
 #prior predictive check
-model_db2_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + Response_abs:skill_dif:Follower_gender | SubjectID), 
+model_db2_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + skill_dif:Follower_gender | SubjectID), 
                        prior = prior_db2, 
                        data = data_db, 
                        sample_prior = "only",
@@ -403,7 +403,7 @@ model_db2_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Fo
 pp_check(model_db2_prior, nsamples = 100)
 
 
-model_db2 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + Response_abs:skill_dif:Follower_gender | SubjectID),
+model_db2 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + skill_dif:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db2,
   sample_prior=T,
@@ -424,7 +424,7 @@ prior_db3 <- c(
 )
 
 #prior predictive check
-model_db3_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif+ (0 + Response_abs:skill_dif:Follower_gender | SubjectID), 
+model_db3_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif+ (0 + skill_dif:Follower_gender | SubjectID), 
                        prior = prior_db3, 
                        data = data_db, 
                        sample_prior = "only",
@@ -436,7 +436,7 @@ model_db3_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif+ (0 + Response_a
 pp_check(model_db3_prior, nsamples = 100)
 
 
-model_db3 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif+ (0 + Response_abs:skill_dif:Follower_gender | SubjectID),
+model_db3 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif+ (0 + skill_dif:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db3,
   sample_prior=T,
@@ -457,7 +457,7 @@ prior_db4 <- c(
 )
 
 #prior predictive check
-model_db4_prior <- brm(leader_behavior ~ 0 + skill_dif*Leader_gender:Follower_gender+ (0 + Response_abs:skill_dif:Follower_gender | SubjectID), 
+model_db4_prior <- brm(leader_behavior ~ 0 + skill_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID), 
                        prior = prior_db4, 
                        data = data_db, 
                        sample_prior = "only",
@@ -469,7 +469,7 @@ model_db4_prior <- brm(leader_behavior ~ 0 + skill_dif*Leader_gender:Follower_ge
 pp_check(model_db4_prior, nsamples = 100)
 
 
-model_db4 <- brm(leader_behavior ~ 0 +skill_dif*Leader_gender:Follower_gender+ (0 + Response_abs:skill_dif:Follower_gender | SubjectID),
+model_db4 <- brm(leader_behavior ~ 0 +skill_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db4,
   sample_prior=T,
@@ -490,7 +490,7 @@ prior_db5 <- c(
 )
 
 #prior predictive check
-model_db5_prior <- brm(leader_behavior ~ 0 + conf_dif*Leader_gender:Follower_gender+ (0 + Response_abs:skill_dif:Follower_gender | SubjectID), 
+model_db5_prior <- brm(leader_behavior ~ 0 + conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID), 
                        prior = prior_db5, 
                        data = data_db, 
                        sample_prior = "only",
@@ -502,7 +502,7 @@ model_db5_prior <- brm(leader_behavior ~ 0 + conf_dif*Leader_gender:Follower_gen
 pp_check(model_db5_prior, nsamples = 100)
 
 
-model_db5 <- brm(leader_behavior ~ 0 +conf_dif*Leader_gender:Follower_gender+ (0 + Response_abs:skill_dif:Follower_gender | SubjectID),
+model_db5 <- brm(leader_behavior ~ 0 +conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db5,
   sample_prior=T,
@@ -523,7 +523,7 @@ prior_db6 <- c(
 )
 
 #prior predictive check
-model_db6_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Follower_gender + (0 + Response_abs:skill_dif:Follower_gender | SubjectID), 
+model_db6_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Follower_gender + (0 + skill_dif:Follower_gender | SubjectID), 
                        prior = prior_db6, 
                        data = data_db, 
                        sample_prior = "only",
@@ -535,7 +535,7 @@ model_db6_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Follower_gender 
 pp_check(model_db6_prior, nsamples = 100)
 
 
-model_db6 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Follower_gender + (0 + Response_abs:skill_dif:Follower_gender | SubjectID),
+model_db6 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Follower_gender + (0 + skill_dif:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db6,
   sample_prior=T,
@@ -556,7 +556,7 @@ prior_db7 <- c(
 )
 
 #prior predictive check
-model_db7_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + Response_abs:skill_dif:Follower_gender | SubjectID), 
+model_db7_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + skill_dif:Follower_gender | SubjectID), 
                        prior = prior_db7, 
                        data = data_db, 
                        sample_prior = "only",
@@ -568,7 +568,7 @@ model_db7_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Fo
 pp_check(model_db7_prior, nsamples = 100)
 
 
-model_db7 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + Response_abs:skill_dif:Follower_gender | SubjectID),
+model_db7 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + skill_dif:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db7,
   sample_prior=T,
