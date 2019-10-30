@@ -20,7 +20,7 @@ setwd("~/Bachelor-MM-/") #TRS
 ```{r}
 data_ib <- read.csv("implicit_bias/data_ib.csv")[,2:12]
 data_eb <- read.csv("explicit_bias/eb_results.csv")[, 2:6]
-data_db <- read.csv("decision_bias/disagree_sensitivity_db_long.csv")[, 2:38]
+data_db <- read.csv("decision_bias/disagree_sensitivity_db_long.csv")[, 2:40]
 ```
 
 
@@ -347,7 +347,7 @@ Below are models: Firstly, the reconstructon of the model and the results from l
 
 ##Analysis from last year (excluding skill difference)
 
-```{r model excluding skill dif, replication of effects from last year}
+```{r model excluding skill dif, replication of effects from last year, 1}
 
 #Defining priors
 prior_db1 <- c(
@@ -383,7 +383,7 @@ summary(model_db1)
 ```
 
 ##New models
-```{r full model}
+```{r full model, 2}
 #Defining priors 
 prior_db2 <- c( 
   prior(normal(0,.2),class="b"),
@@ -391,7 +391,7 @@ prior_db2 <- c(
 )
 
 #prior predictive check
-model_db2_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + skill_dif:Follower_gender | SubjectID), 
+model_db2_prior <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_c*Leader_gender:Follower_gender + (0 + skill_dif_c:Follower_gender | SubjectID), 
                        prior = prior_db2, 
                        data = data_db, 
                        sample_prior = "only",
@@ -403,7 +403,7 @@ model_db2_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Fo
 pp_check(model_db2_prior, nsamples = 100)
 
 
-model_db2 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + skill_dif:Follower_gender | SubjectID),
+model_db2 <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_c*Leader_gender:Follower_gender + (0 + skill_dif_c:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db2,
   sample_prior=T,
@@ -413,10 +413,12 @@ model_db2 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower
   cores=4
   #control = list(adapt_delta = 0.9) 
 ) 
+marginal_effects(model_db2)
+
 summary(model_db2) 
 ```
 
-```{r model without gender, both follower and leader}
+```{r model without gender, both follower and leader,3 }
 #Defining priors
 prior_db3 <- c(
   prior(normal(0,.2),class="b"),
@@ -449,7 +451,7 @@ model_db3 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif+ (0 + skill_dif:Follow
 summary(model_db3)
 ```
 
-```{r model without confidence}
+```{r model without confidence, 4}
 #Defining priors
 prior_db4 <- c(
   prior(normal(0,.2),class="b"),
@@ -482,7 +484,7 @@ model_db4 <- brm(leader_behavior ~ 0 +skill_dif*Leader_gender:Follower_gender+ (
 summary(model_db4)
 ```
 
-```{r model without skill difference}
+```{r model without skill difference, 5}
 #Defining priors
 prior_db5 <- c(
   prior(normal(0,.2),class="b"),
@@ -515,7 +517,7 @@ model_db5 <- brm(leader_behavior ~ 0 +conf_dif*Leader_gender:Follower_gender+ (0
 summary(model_db5)
 ```
 
-```{r model only with follower}
+```{r model only with follower, 6}
 #Defining priors
 prior_db6 <- c(
   prior(normal(0,.2),class="b"),
@@ -548,7 +550,7 @@ model_db6 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Follower_gender + (0 +
 summary(model_db6)
 ```
 
-```{r model with only leader gender}
+```{r model with only leader gender, 7}
 #Defining priors
 prior_db7 <- c(
   prior(normal(0,.2),class="b"),
@@ -584,6 +586,8 @@ summary(model_db7)
 ##Waic
 ```{r waic}
 waic(model_db1, model_db2, model_db3, model_db4, model_db5, model_db6, model_db7)
+
+
 ```
 
 ## Hypothesis testing
