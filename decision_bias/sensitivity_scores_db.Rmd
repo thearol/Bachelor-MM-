@@ -14,11 +14,12 @@ library(pacman)
 p_load(plotly, jpeg, tm, brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, stringr, here, data.table, mousetrap)
 
 #setting working directory
-setwd("~/Bachelor-MM-/decision_bias")
+#setwd("~/Bachelor-MM-/decision_bias")
+
 
 #data
-data_db <- read.csv("data_db.csv")[,2:41]
-disagree_db <- read.csv("disagree_db.csv")[,2:41]
+data_db <- read.csv("decision_bias/data_db.csv")[,2:41]
+disagree_db <- read.csv("decision_bias/disagree_db.csv")[,2:41]
 
 ```
 
@@ -147,6 +148,122 @@ sensitivity_scores <- sensitivity_scores[,2:4]
 long_data_db <- merge(long_data_db,sensitivity_scores, by="SubjectID_unique")
 ```
 
+
+
+```{r}
+
+#Making a number of iterations variable
+n = 1
+t = 1
+###Making a loop for individual slope
+for (i in 1:96){ #Loop through number of trials
+  if(i == 10){ #If the first 10
+    for (p in unique(long_data_db$SubjectID_unique)){
+          if (n == 1) {
+            data_i <- filter(long_data_db, long_data_db$SubjectID_unique == p)[1:10, ]
+            n = n + 1
+          } else {
+            data_i <- rbind(data_i, filter(long_data_db, long_data_db$SubjectID_unique == p)[1:10, ])
+            n = n + 1
+          } }
+    
+      #Defining priors
+      prior_sensitivity =  c(
+      prior(normal(0,0.1), class = "b", coef = "diff"),
+      prior(normal(0,0.2), class = "Intercept"),
+      prior(normal(0,0.1), class = "sd", coef = "diff", group = "SubjectID_unique"),
+      prior(normal(0,0.2), class = "sd", coef = "Intercept", group = "SubjectID_unique")
+    )
+    
+    #Making the model - using answer
+    m_sensitivity <- brm(
+    response_dummy ~ diff + (1+diff|SubjectID_unique),
+    data = data_i,
+    prior = prior_sensitivity,
+    family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+    seed = 123,# Adding a seed makes results reproducible.
+    cores=2,
+    chains=4,
+    #control = list(adapt_delta = 0.9)
+    )
+    
+    } 
+    
+  
+    ###SAVING ESTIMATES
+    #Saving random effect for individual slope
+    random_effects_slope <- as.data.frame(ranef(m_sensitivity))[,5:6]
+    
+    #Saving fixed effects 
+    fixed_effects <- as.data.frame(fixef(m_sensitivity)) #Making data frame of fixed effects
+    
+    #Make an empty dataframe
+    sensitivity_scores = data.frame(matrix(vector(), 128, 2,
+                    dimnames=list(c(), c("Intercept", "Slope"))),
+                    stringsAsFactors=F)
+    
+    #Add fixed effects of intercept to random effects of intercept
+    sensitivity_scores$Intercept <- random_effects_intercept[,1] + fixed_effects[1,1]
+    
+    #Add fixed effects of slope to random effects of slope
+    sensitivity_scores$Slope <- random_effects_slope[,1] + fixed_effects[2,1]
+    
+    #Adding rownames
+    sensitivity_scores <- cbind(Row.Names = rownames(random_effects_intercept), as.data.frame(sensitivity_scores))
+
+      
+    } else {
+      
+      for (p in unique(long_data_db$SubjectID_unique)){
+          if (t == 1) {
+            data_i <- filter(long_data_db, long_data_db$SubjectID_unique == p)[1:10, ]
+            n = n + 1
+          } else {
+            data_i <- rbind(data_i, filter(long_data_db, long_data_db$SubjectID_unique == p)[1:10, ])
+            n = n + 1
+          }
+      
+      
+    }
+    
+    
+      
+      
+  
+
+
+
+for (i in  NROW(long_data_db$SubjectID_unique)){
+  if(i == 10){ 
+    #Choosing temporary data
+    for (p in unique(data_db$SubjectID_left)){
+      if (p == )
+      data_i <- filter(data_db, SubjectID_left == i)
+    }
+         data_i <- long_data_db[1:10,] #Choosing temporary data
+    
+    
+  
+   
+    
+  }
+  
+  
+  
+  #Insert into permanent data frame
+  if (n == 1){
+    Results <- data_i
+  } else {
+    Results <- rbind(Results, data_i)
+  }
+
+  #Adding 1 to number of iterations
+n = n + 1
+  
+}
+  
+  
+```
 
 #Plotting the model 
 
