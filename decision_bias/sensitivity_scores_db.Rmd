@@ -10,8 +10,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r loading packages and data}
-library(pacman)
-p_load(plotly, jpeg, tm, brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, stringr, here, data.table, mousetrap)
+#library(pacman)
+#p_load(plotly, jpeg, tm, brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, stringr, here, data.table, mousetrap)
+#p_load(tidyverse, brms)
+library(brms)
 
 #setting working directory
 #setwd("~/Bachelor-MM-/decision_bias")
@@ -183,7 +185,7 @@ for (i in 1:96){ #Loop through number of trials
     family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
     seed = 123,# Adding a seed makes results reproducible.
     cores=2,
-    chains=4,
+    chains=2,
     #control = list(adapt_delta = 0.9)
     )
     
@@ -192,15 +194,14 @@ for (i in 1:96){ #Loop through number of trials
   
     ###SAVING ESTIMATES
     #Saving random effect for individual slope
-    random_effects_slope <- as.data.frame(ranef(m_sensitivity))[,5:6]
+    random_effects_slope <- as.data.frame(ranef(m_sensitivity))[,5]
     
     #Saving fixed effects 
-    fixed_effects <- as.data.frame(fixef(m_sensitivity)) #Making data frame of fixed effects
+    fixed_effects <- as.data.frame(fixef(m_sensitivity)[2,1]) #Making data frame of fixed effects
     
     #Make an empty dataframe
-    sensitivity_scores = data.frame(matrix(vector(), 128, 2,
-                    dimnames=list(c(), c("Intercept", "Slope"))),
-                    stringsAsFactors=F)
+    sensitivity_scores = data.frame(matrix(vector(), 86, 128,
+                    dimnames=list(c(), as.character(unique(long_data_db$SubjectID_unique)))))
     
     #Add fixed effects of intercept to random effects of intercept
     sensitivity_scores$Intercept <- random_effects_intercept[,1] + fixed_effects[1,1]
@@ -209,8 +210,8 @@ for (i in 1:96){ #Loop through number of trials
     sensitivity_scores$Slope <- random_effects_slope[,1] + fixed_effects[2,1]
     
     #Adding rownames
-    sensitivity_scores <- cbind(Row.Names = rownames(random_effects_intercept), as.data.frame(sensitivity_scores))
-
+    sensitivity_scores <- cbind(Row.Names = , as.data.frame(sensitivity_scores))
+h <- as.data.frame(ranef(m_sensitivity)
       
     } else {
       
