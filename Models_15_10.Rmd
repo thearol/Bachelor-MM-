@@ -418,7 +418,7 @@ marginal_effects(model_db2)
 summary(model_db2) 
 ```
 
-```{r model without gender, both follower and leader,3 }
+```{r model without confidence, 3}
 #Defining priors
 prior_db3 <- c(
   prior(normal(0,.2),class="b"),
@@ -426,7 +426,7 @@ prior_db3 <- c(
 )
 
 #prior predictive check
-model_db3_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif+ (0 + skill_dif:Follower_gender | SubjectID), 
+model_db3_prior <- brm(leader_behavior ~ 0 + skill_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID), 
                        prior = prior_db3, 
                        data = data_db, 
                        sample_prior = "only",
@@ -438,7 +438,7 @@ model_db3_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif+ (0 + skill_dif:
 pp_check(model_db3_prior, nsamples = 100)
 
 
-model_db3 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif+ (0 + skill_dif:Follower_gender | SubjectID),
+model_db3 <- brm(leader_behavior ~ 0 +skill_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db3,
   sample_prior=T,
@@ -451,7 +451,7 @@ model_db3 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif+ (0 + skill_dif:Follow
 summary(model_db3)
 ```
 
-```{r model without confidence, 4}
+```{r model without skill difference, 4}
 #Defining priors
 prior_db4 <- c(
   prior(normal(0,.2),class="b"),
@@ -459,7 +459,7 @@ prior_db4 <- c(
 )
 
 #prior predictive check
-model_db4_prior <- brm(leader_behavior ~ 0 + skill_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID), 
+model_db4_prior <- brm(leader_behavior ~ 0 + conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID), 
                        prior = prior_db4, 
                        data = data_db, 
                        sample_prior = "only",
@@ -471,7 +471,7 @@ model_db4_prior <- brm(leader_behavior ~ 0 + skill_dif*Leader_gender:Follower_ge
 pp_check(model_db4_prior, nsamples = 100)
 
 
-model_db4 <- brm(leader_behavior ~ 0 +skill_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID),
+model_db4 <- brm(leader_behavior ~ 0 +conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db4,
   sample_prior=T,
@@ -484,108 +484,9 @@ model_db4 <- brm(leader_behavior ~ 0 +skill_dif*Leader_gender:Follower_gender+ (
 summary(model_db4)
 ```
 
-```{r model without skill difference, 5}
-#Defining priors
-prior_db5 <- c(
-  prior(normal(0,.2),class="b"),
-  prior(normal(0,.1),class="sd")
-)
-
-#prior predictive check
-model_db5_prior <- brm(leader_behavior ~ 0 + conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID), 
-                       prior = prior_db5, 
-                       data = data_db, 
-                       sample_prior = "only",
-                       iter = 4000, 
-                       family = "bernoulli", 
-                       chains = 2, 
-                       cores = 2)
-
-pp_check(model_db5_prior, nsamples = 100)
-
-
-model_db5 <- brm(leader_behavior ~ 0 +conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID),
-  data = data_db,
-  prior = prior_db5,
-  sample_prior=T,
-  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
-  seed = 123, # Adding a seed makes results reproducible.
-  chains=4,
-  cores=4
-  #control = list(adapt_delta = 0.9) 
-) 
-summary(model_db5)
-```
-
-```{r model only with follower, 6}
-#Defining priors
-prior_db6 <- c(
-  prior(normal(0,.2),class="b"),
-  prior(normal(0,.1),class="sd")
-)
-
-#prior predictive check
-model_db6_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Follower_gender + (0 + skill_dif:Follower_gender | SubjectID), 
-                       prior = prior_db6, 
-                       data = data_db, 
-                       sample_prior = "only",
-                       iter = 4000, 
-                       family = "bernoulli", 
-                       chains = 2, 
-                       cores = 2)
-
-pp_check(model_db6_prior, nsamples = 100)
-
-
-model_db6 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Follower_gender + (0 + skill_dif:Follower_gender | SubjectID),
-  data = data_db,
-  prior = prior_db6,
-  sample_prior=T,
-  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
-  seed = 123, # Adding a seed makes results reproducible.
-  chains=4,
-  cores=4
-  #control = list(adapt_delta = 0.9) 
-) 
-summary(model_db6)
-```
-
-```{r model with only leader gender, 7}
-#Defining priors
-prior_db7 <- c(
-  prior(normal(0,.2),class="b"),
-  prior(normal(0,.1),class="sd")
-)
-
-#prior predictive check
-model_db7_prior <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + skill_dif:Follower_gender | SubjectID), 
-                       prior = prior_db7, 
-                       data = data_db, 
-                       sample_prior = "only",
-                       iter = 4000, 
-                       family = "bernoulli", 
-                       chains = 2, 
-                       cores = 2)
-
-pp_check(model_db7_prior, nsamples = 100)
-
-
-model_db7 <- brm(leader_behavior ~ 0 + conf_dif*skill_dif*Leader_gender:Follower_gender + (0 + skill_dif:Follower_gender | SubjectID),
-  data = data_db,
-  prior = prior_db7,
-  sample_prior=T,
-  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
-  seed = 123, # Adding a seed makes results reproducible.
-  chains=4,
-  cores=4
-  #control = list(adapt_delta = 0.9) 
-) 
-summary(model_db7)
-```
-
 ##Waic
 ```{r waic}
-waic(model_db1, model_db2, model_db3, model_db4, model_db5, model_db6, model_db7)
+waic(model_db1, model_db2, model_db3, model_db4)
 
 
 ```
