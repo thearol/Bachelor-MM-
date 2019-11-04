@@ -144,13 +144,13 @@ sensitivity_scores <- sensitivity_scores[,2:4]
 ```
 
 
-```{r merge sensitivity scores with long_data_db}
+```{r merge sensitivity scores with long_data_db, eval = FALSE}
 long_data_db <- merge(long_data_db,sensitivity_scores, by="SubjectID_unique")
 ```
 
 
 
-```{r creating new sensitivity score}
+```{r creating new sensitivity score, eval = FALSE}
 
 #Making a number of iterations variable
 n = 1
@@ -193,12 +193,12 @@ for (i in 1:96){ #Loop through number of trials
     
     ###SAVING ESTIMATES
     #Saving random effect for individual slope
-    sensitivity_scores <- as.data.frame(ranef(m_sensitivity))[,5] + fixef(m_sensitivity)[2,1]
+    sensitivity_scores_roll <- as.data.frame(ranef(m_sensitivity))[,5] + fixef(m_sensitivity)[2,1]
     
     #Adding rownames
-    sensitivity_scores <- cbind(Row.Names = rownames(as.data.frame(ranef(m_sensitivity))[,5:6]), as.data.frame(sensitivity_scores))
+    sensitivity_scores_roll <- cbind(Row.Names = rownames(as.data.frame(ranef(m_sensitivity))[,5:6]), as.data.frame(sensitivity_scores_roll))
     
-    colnames(sensitivity_scores) <- c("SubjectID_unique", i)
+    colnames(sensitivity_scores_roll) <- c("SubjectID_unique", i)
   }
     
     if(i > 10){
@@ -239,34 +239,52 @@ for (i in 1:96){ #Loop through number of trials
     ###SAVING ESTIMATES
     
     #Saving random effect for individual slope
-    sensitivity_scores_temp <- as.data.frame(ranef(m_sensitivity))[,5] + fixef(m_sensitivity)[2,1]
+    sensitivity_scores_roll_temp <- as.data.frame(ranef(m_sensitivity))[,5] + fixef(m_sensitivity)[2,1]
     
     #Cbind new results to sensitivity score
-    sensitivity_scores <- cbind(sensitivity_scores, sensitivity_scores_temp)
+    sensitivity_scores_roll <- cbind(sensitivity_scores_roll, sensitivity_scores_roll_temp)
     
-    colnames(sensitivity_scores)[k+2] <- i
+    colnames(sensitivity_scores_roll)[k+2] <- i
     
 } }
     
     
-  
-write.csv(sensitivity_scores, file = "sensitivity_scores_rolling.csv")
+
 ```
 
+```{r write and read csv}
+  
+write.csv(sensitivity_scores_roll, file = "sensitivity_scores_rolling.csv")
+sensitivity_scores_roll <- read.csv("sensitivity_scores_rolling.csv")[,2:89]
+```
+
+
 ```{r merge the new results with the long data frame}
-#Creating a trial variable¨
+
+
+#Creating a trial variable
+n = 1
+p = NULL
  for (p in unique(long_data_db$SubjectID_unique)){
-   if (n = 1) {
-     data_i <- filter(long_data_db, long_data_db$SubjectID_unique == p)
-     data_i <- cbind(data_i, as.data.frame(1:NROWS(data_i$SubjectID_unique)))
-   } else {
-     data_temp <- filter(long_data_db, long_data_db$SubjectID_unique == p)
-     data_temp <- cbind(data_i, as.data.frame(1:NROWS(data_i$SubjectID_unique)))
-     long_data_db_try <- rbind(data_i, data_temp)
+   if (n == 1) {
+     data_j <- filter(long_data_db, long_data_db$SubjectID_unique == p)
+     data_j <- cbind(data_j, as.data.frame(1:sum(complete.cases(data_j$SubjectID))))
+     colnames(data_j)[24] <- "Trial"
+     n = n + 1
+     } else {
+     data_j <- rbind(data_j,mutate(filter(long_data_db, long_data_db$SubjectID_unique == p), Trial = 1:sum(complete.cases(filter(long_data_db, long_data_db$SubjectID_unique == p)$SubjectID))))
+     n = n + 1
    }
  }
 
-#MERGEMERGEMERGE
+#Reshaping the data
+mdata <- melt(sensitivity_scores_roll, id.vars=c("SubjectID_unique"), measure.vars = c(colnames(sensitivity_scores_roll)[2:88]), variable.name = "Trial", value.name = "Sensitivity_roll")
+
+#Remove ugly X in trial column
+mdata$Trial <-str_replace_all(mdata$Trial, "X", "")
+
+#Merge data_j with sensitivity scores
+long_data_db <- merge(data_j, mdata, by = c("SubjectID_unique", "Trial")) #Insert NAs on trials lower than 10
 
 ```
 
@@ -334,7 +352,7 @@ sjp.lmer(m_sensitivity, vars = "c12hour", type = "ri.slope")
 ```{r create dataframe that only contains the columns which we would like to merge into wide format}
 
 #Make dataframe with intercept, slope, side, and unique subject
-sensitivity_scores <- distinct(long_data_db, SubjectID_unique, Side, Intercept, Slope)
+sensitivity_scores <- distinct(long_data_db, SubjectID_unique, Side, Intercept, Slope, Sensitivity_roll)
 
 ```
 
@@ -385,6 +403,17 @@ disagree_db_wide$skill_dif <- ifelse(disagree_db_wide$chosen_leader == "Left_lea
 disagree_db_wide$skill_dif_c <- (disagree_db_wide$skill_dif)-1
 
 ```
+
+
+#Skill difference rolling
+
+```{r calculating skill difference rolling}
+disagree_db_wide$skill_dif_roll <- 0 #Creating column of 0
+disagree_db_wide$skill_dif_roll <- ifelse(disagree_db_wide$chosen_leader == "Left_lead", disagree_db_wide$Sensitivity_roll_left/disagree_db_wide$Sensitivity_roll_right, disagree_db_wide$Sensitivity_roll_right/disagree_db_wide$Sensitivity_roll_left) #calculating skill difference as a ratio between leader and follower sensitivity
+disagree_db_wide$skill_dif_roll_c <- (disagree_db_wide$skill_dif_roll)-1
+
+```
+
 
 #Confidence difference
 
