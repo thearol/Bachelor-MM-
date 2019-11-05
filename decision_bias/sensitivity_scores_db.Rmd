@@ -18,8 +18,8 @@ setwd("~/Bachelor-MM-/decision_bias")
 
 
 #data
-data_db <- read.csv("data_db.csv")[,2:41]
-disagree_db <- read.csv("disagree_db.csv")[,2:41]
+data_db <- read.csv("data_db.csv")[,2:40]
+disagree_db <- read.csv("disagree_db.csv")[,2:42]
 
 ```
 
@@ -36,10 +36,14 @@ data_db <- data_db[,1:30]
 ```{r making long format, include = FALSE}
 
 #create dataframe with only data from left player
-left <- data_db %>% select(-contains('right'))
+left <- data_db %>% select(-contains('right'), c(Gender_right))
+colnames(left)[colnames(left) == "Gender_right"] <- "Partner_gender"
+
 
 #create dataframe with only data from right player
-right <- data_db %>% select(-contains('left'))
+right <- data_db %>% select(-contains('left'), c(Gender_left))
+colnames(right)[colnames(right) == "Gender_left"] <- "Partner_gender"
+
 
 
 #rename columns to not contain left or right
@@ -59,6 +63,11 @@ left$Side <- as.factor("left")
 #Joining the dataframes
 long_data_db <- rbind(left, right)
 
+```
+
+```{r create csv file with all trials}
+
+write.csv(long_data_db, file = "data_db_all.csv")
 ```
 
 ## Create models for sensitivity scores
@@ -269,7 +278,7 @@ p = NULL
    if (n == 1) {
      data_j <- filter(long_data_db, long_data_db$SubjectID_unique == p)
      data_j <- cbind(data_j, as.data.frame(1:sum(complete.cases(data_j$SubjectID))))
-     colnames(data_j)[24] <- "Trial"
+     colnames(data_j)[26] <- "Trial"
      n = n + 1
      } else {
      data_j <- rbind(data_j,mutate(filter(long_data_db, long_data_db$SubjectID_unique == p), Trial = 1:sum(complete.cases(filter(long_data_db, long_data_db$SubjectID_unique == p)$SubjectID))))
@@ -284,10 +293,9 @@ mdata <- melt(sensitivity_scores_roll, id.vars=c("SubjectID_unique"), measure.va
 mdata$Trial <-str_replace_all(mdata$Trial, "X", "")
 
 #Merge data_j with sensitivity scores
-long_data_db <- merge(data_j, mdata, by = c("SubjectID_unique", "Trial")) #Insert NAs on trials lower than 10
+long_data_db <- merge(data_j, mdata, by = c("SubjectID_unique", "Trial"), all.x = TRUE, all.y = TRUE) #Insert NAs on trials lower than 10
 
 ```
-
 
 #Plotting the model 
 
@@ -352,9 +360,11 @@ sjp.lmer(m_sensitivity, vars = "c12hour", type = "ri.slope")
 ```{r create dataframe that only contains the columns which we would like to merge into wide format}
 
 #Make dataframe with intercept, slope, side, and unique subject
-sensitivity_scores <- distinct(long_data_db, SubjectID_unique, Side, Intercept, Slope, Sensitivity_roll)
+sensitivity_scores <- distinct(long_data_db, SubjectID_unique, Side, Intercept, Slope, Sensitivity_roll, Trial)
 
 ```
+
+
 
 
 ```{r make wide to merge with disagree data}
@@ -377,14 +387,18 @@ sensitivity_scores_right <- subset(sensitivity_scores_right, select = -c(Side))
 sensitivity_scores_left <- subset(sensitivity_scores_left, select = -c(Side))
 
 #Renaming columns
-colnames(sensitivity_scores_left) <-  c("Intercept_left", "Slope_left", "SubjectID_left_unique")
-colnames(sensitivity_scores_right) <-  c("Intercept_right", "Slope_right", "SubjectID_right_unique")
+colnames(sensitivity_scores_left) <-  c("Intercept_left", "Slope_left", "Sensitivity_roll_left", "Trial_left", "SubjectID_left_unique")
+colnames(sensitivity_scores_right) <-  c("Intercept_right", "Slope_right", "Sensitivity_roll_right", "Trial_right", "SubjectID_right_unique")
+
+disagree_db$Trial_right <- disagree_db$Trial 
+
+colnames(disagree_db)[41] <- "Trial_left"
 
 #Merging left data
-disagree_db_wide <- merge(disagree_db, sensitivity_scores_left, by = "SubjectID_left_unique", all.x = TRUE, all.y = TRUE )
+disagree_db_wide <- merge(disagree_db, sensitivity_scores_left, by = c("SubjectID_left_unique", "Trial_left"))
 
 #Merging right data
-disagree_db_wide <- merge(disagree_db_wide, sensitivity_scores_right, by = "SubjectID_right_unique", all.x = TRUE, all.y = TRUE )
+disagree_db_wide <- merge(disagree_db_wide, sensitivity_scores_right, by = c("SubjectID_right_unique", "Trial_right"))
 
 
 ```

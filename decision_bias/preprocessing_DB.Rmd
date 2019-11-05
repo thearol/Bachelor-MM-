@@ -116,9 +116,31 @@ data_db$leader_behavior[data_db$chosen_leader == "Agree"] <- NA #Removing cases 
 
 ```
 
+
+```{r Add trial variable}
+
+#Creating a trial variable
+n = 1
+p = NULL
+ for (p in unique(data_db$SubjectID_left_unique)){
+   if (n == 1) {
+     data_j <- filter(data_db, data_db$SubjectID_left_unique == p)
+     data_j <- cbind(data_j, as.data.frame(1:sum(complete.cases(data_j$SubjectID_left))))
+     colnames(data_j)[41] <- "Trial"
+     n = n + 1
+     } else {
+     data_j <- rbind(data_j,mutate(filter(data_db, data_db$SubjectID_left_unique == p), Trial = 1:sum(complete.cases(filter(data_db, data_db$SubjectID_left_unique == p)$SubjectID_left))))
+     n = n + 1
+   }
+ }
+
+```
+
+
+
 ```{r Filtering data to include only joint decisions}
 #Filtering data to include only joint decisions
-disagree_db <- na.omit(data_db)
+disagree_db <- na.omit(data_j)
 
 ```
 

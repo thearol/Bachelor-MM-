@@ -21,6 +21,7 @@ setwd("~/Bachelor-MM-/") #TRS
 data_ib <- read.csv("implicit_bias/data_ib.csv")[,2:12]
 data_eb <- read.csv("explicit_bias/eb_results.csv")[, 2:6]
 data_db <- read.csv("decision_bias/disagree_sensitivity_db_long.csv")[, 2:44]
+data_db_all <- read.csv("data_db_all.csv")
 ```
 
 
@@ -345,7 +346,7 @@ hypothesis(model_eb3, "benevolent_score > 0")
 #DECISION BIAS
 Below are models: Firstly, the reconstructon of the model and the results from last year. Secondly, new combinations of the variables with the goal of finding the best model. 
 
-##Analysis from last year (excluding skill difference)
+###Analysis from last year (excluding skill difference)
 
 ```{r model excluding skill dif, replication of effects from last year, 1}
 
@@ -356,7 +357,7 @@ prior_db1 <- c(
 )
 
 #prior predictive check
-model_db1_prior <- brm(leader_behavior ~ 0 + Leader_gender:Follower_gender + (0 + skill_dif_c:Follower_gender | SubjectID), 
+model_db1_prior <- brm(leader_behavior ~ 0 + Leader_gender:Follower_gender + (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
                        prior = prior_db1, 
                        data = data_db, 
                        sample_prior = "only",
@@ -369,7 +370,7 @@ pp_check(model_db1_prior, nsamples = 100)
 
 
 model_db1 <- brm(
-  leader_behavior ~ 0 + Leader_gender : Follower_gender + ( 0 + skill_dif_c : Follower_gender | SubjectID),
+  leader_behavior ~ 0 + Leader_gender : Follower_gender + ( 0 + skill_dif_roll_c : Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db1,
   sample_prior=T,
@@ -391,7 +392,7 @@ prior_db2 <- c(
 )
 
 #prior predictive check
-model_db2_prior <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_c*Leader_gender:Follower_gender + (0 + skill_dif_c:Follower_gender | SubjectID), 
+model_db2_prior <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_roll_c*Leader_gender:Follower_gender + (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
                        prior = prior_db2, 
                        data = data_db, 
                        sample_prior = "only",
@@ -403,7 +404,7 @@ model_db2_prior <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_c*Leader_gende
 pp_check(model_db2_prior, nsamples = 100)
 
 
-model_db2 <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_c*Leader_gender:Follower_gender + (0 + skill_dif_c:Follower_gender | SubjectID),
+model_db2 <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_roll_c*Leader_gender:Follower_gender + (0 + skill_dif_roll_c:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db2,
   sample_prior=T,
@@ -426,7 +427,7 @@ prior_db3 <- c(
 )
 
 #prior predictive check
-model_db3_prior <- brm(leader_behavior ~ 0 + skill_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID), 
+model_db3_prior <- brm(leader_behavior ~ 0 + skill_dif_roll_c*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
                        prior = prior_db3, 
                        data = data_db, 
                        sample_prior = "only",
@@ -438,7 +439,7 @@ model_db3_prior <- brm(leader_behavior ~ 0 + skill_dif*Leader_gender:Follower_ge
 pp_check(model_db3_prior, nsamples = 100)
 
 
-model_db3 <- brm(leader_behavior ~ 0 +skill_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID),
+model_db3 <- brm(leader_behavior ~ 0 +skill_dif_roll_c*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db3,
   sample_prior=T,
@@ -459,7 +460,7 @@ prior_db4 <- c(
 )
 
 #prior predictive check
-model_db4_prior <- brm(leader_behavior ~ 0 + conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID), 
+model_db4_prior <- brm(leader_behavior ~ 0 + conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
                        prior = prior_db4, 
                        data = data_db, 
                        sample_prior = "only",
@@ -471,7 +472,7 @@ model_db4_prior <- brm(leader_behavior ~ 0 + conf_dif*Leader_gender:Follower_gen
 pp_check(model_db4_prior, nsamples = 100)
 
 
-model_db4 <- brm(leader_behavior ~ 0 +conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif:Follower_gender | SubjectID),
+model_db4 <- brm(leader_behavior ~ 0 +conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db4,
   sample_prior=T,
@@ -484,57 +485,66 @@ model_db4 <- brm(leader_behavior ~ 0 +conf_dif*Leader_gender:Follower_gender+ (0
 summary(model_db4)
 ```
 
-##Alternative skill measure
 
-###Analysis from last year (excluding skill difference)
 
-```{r model excluding skill dif, replication of effects from last year, 5}
+##Investigating confidence variable
+```{r}
+#add column with absolute response
+data_db_all$Response_abs <- abs(data_db_all$Response)
 
-#Defining priors
-prior_db5 <- c(
+get_prior(Response_abs ~ Gender*Partner_gender + (1 | SubjectID), family = "gaussian",
+                       data = data_db_all)
+#Defining priors 
+prior_db5 <- c( 
+  prior(student_t(3, 2, 10),class="Intercept"),
   prior(normal(0,.2),class="b"),
-  prior(normal(0,.1),class="sd")
+  prior(student_t(3, 0, 10),class="sd")
 )
 
 #prior predictive check
-model_db5_prior <- brm(leader_behavior ~ 0 + Leader_gender:Follower_gender + (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
+model_db5_prior <- brm(Response_abs ~ Gender*Partner_gender+ (1 | SubjectID), 
                        prior = prior_db5, 
-                       data = data_db, 
+                       data = data_db_all, 
                        sample_prior = "only",
                        iter = 4000, 
-                       family = "bernoulli", 
+                       family = "gaussian", 
                        chains = 2, 
                        cores = 2)
 
 pp_check(model_db5_prior, nsamples = 100)
 
 
-model_db5 <- brm(
-  leader_behavior ~ 0 + Leader_gender : Follower_gender + ( 0 + skill_dif_roll_c : Follower_gender | SubjectID),
-  data = data_db,
+model_db5 <- brm(Response_abs ~ Gender*Partner_gender + (1 | SubjectID),
+  data = data_db_all,
   prior = prior_db5,
   sample_prior=T,
-  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  family = "gaussian", #As we had a binary outcome, we set this to "bernoulli"
   seed = 123, # Adding a seed makes results reproducible.
-  chains=4,
-  cores=4
-  #control = list(adapt_delta = 0.9) 
+  chains=6,
+  cores=4,
+  control = list(adapt_delta = 0.99) 
 ) 
+marginal_effects(model_db5)
+
 summary(model_db5)
+
 ```
 
-##New models
-```{r full model, 6}
-#Defining priors 
-prior_db6 <- c( 
-  prior(normal(0,.2),class="b"),
-  prior(normal(0,.1),class="sd")
+##Investigating skill difference
+```{r is men better than women regression, include = FALSE}
+
+#Defining priors
+prior_db6 <- c(
+  prior(normal(0, 0.2),class="Intercept"),
+  prior(normal(0,0.1),class="b"),
+  prior(normal(0,0.2), class= "sd")
 )
 
+
 #prior predictive check
-model_db6_prior <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_roll_c*Leader_gender:Follower_gender + (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
+model_db6_prior <- brm(response_dummy ~ diff*Gender + (1+diff|SubjectID), 
                        prior = prior_db6, 
-                       data = data_db, 
+                       data = data_db_all, 
                        sample_prior = "only",
                        iter = 4000, 
                        family = "bernoulli", 
@@ -543,92 +553,39 @@ model_db6_prior <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_roll_c*Leader_
 
 pp_check(model_db6_prior, nsamples = 100)
 
-
-model_db6 <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_roll_c*Leader_gender:Follower_gender + (0 + skill_dif_roll_c:Follower_gender | SubjectID),
-  data = data_db,
+# Model answer predicted by gender and difficulty
+model_db6 <- brm(
+  response_dummy ~ diff*Gender + (1+diff|SubjectID), 
+  data = data_db_all,
   prior = prior_db6,
+  family = "bernoulli",
   sample_prior=T,
-  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
   seed = 123, # Adding a seed makes results reproducible.
-  chains=4,
-  cores=4
-  #control = list(adapt_delta = 0.9) 
+  cores=4,
+  chains=4
 ) 
-marginal_effects(model_db6)
-
-summary(model_db6) 
-```
-
-```{r model without confidence, 7}
-#Defining priors
-prior_db7 <- c(
-  prior(normal(0,.2),class="b"),
-  prior(normal(0,.1),class="sd")
-)
-
-#prior predictive check
-model_db7_prior <- brm(leader_behavior ~ 0 + skill_dif_roll_c*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
-                       prior = prior_db7, 
-                       data = data_db, 
-                       sample_prior = "only",
-                       iter = 4000, 
-                       family = "bernoulli", 
-                       chains = 2, 
-                       cores = 2)
-
-pp_check(model_db7_prior, nsamples = 100)
 
 
-model_db7 <- brm(leader_behavior ~ 0 +skill_dif_roll_c*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID),
-  data = data_db,
-  prior = prior_db7,
+##MODELLING SKILL FROM CORRECT
+
+#Model predicting correctness from gender
+model_db7 <- brm(
+  Correct ~ Gender + (1+diff|SubjectID), 
+  data = data_db_all,
+  prior = prior_db6,
+  family = "bernoulli",
   sample_prior=T,
-  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
   seed = 123, # Adding a seed makes results reproducible.
-  chains=4,
-  cores=4
-  #control = list(adapt_delta = 0.9) 
+  cores=4,
+  chains=4
 ) 
-summary(model_db7)
+
+
 ```
-
-```{r model without skill difference, 8}
-#Defining priors
-prior_db8 <- c(
-  prior(normal(0,.2),class="b"),
-  prior(normal(0,.1),class="sd")
-)
-
-#prior predictive check
-model_db8_prior <- brm(leader_behavior ~ 0 + conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
-                       prior = prior_db8, 
-                       data = data_db, 
-                       sample_prior = "only",
-                       iter = 4000, 
-                       family = "bernoulli", 
-                       chains = 2, 
-                       cores = 2)
-
-pp_check(model_db8_prior, nsamples = 100)
-
-
-model_db8 <- brm(leader_behavior ~ 0 +conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID),
-  data = data_db,
-  prior = prior_db8,
-  sample_prior=T,
-  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
-  seed = 123, # Adding a seed makes results reproducible.
-  chains=4,
-  cores=4
-  #control = list(adapt_delta = 0.9) 
-) 
-summary(model_db8)
-```
-
 
 ##Waic
 ```{r waic}
-waic(model_db1, model_db2, model_db3, model_db4, model_db5, model_db6, model_db7, model_db8)
+waic(model_db1, model_db2, model_db3, model_db4)
 
 ```
 
@@ -762,61 +719,6 @@ H3.2 <- ggplot(pred, aes(x = Leader_gender, y = Estimate, fill = Follower_gender
   stat_summary(fun.data=mean_sdl, geom="pointrange", color="black", position = position_dodge(width = 0.7), alpha = 0.8) +
   labs(fill = "Follower gender") + 
   scale_fill_manual(values=c("palegreen3", "gold2"))
-```
-
-##Are men better than women? (if we exclude skill in the model))
-```{r is men better than women regression, include = FALSE}
-
-#Defining priors
-prior_skill_gender_db <- c(
-  prior(normal(0, 0.2),class="Intercept"),
-  prior(normal(0,0.1),class="b"),
-  prior(normal(0,0.2), class= "sd", coef = "diff", group = "ID"),
-  prior(normal(0,0.1), class= "sd", coef = "Intercept", group = "ID")
-)
-
-# Model w skill difference
-skill_gender_db <- brm(
-  answer ~ diff + diff:Gender + (1+diff|ID), 
-  data = data_db,
-  prior = prior_skill_gender_db,
-  family = "bernoulli",
-  sample_prior=T,
-  seed = 123, # Adding a seed makes results reproducible.
-  cores=2,
-  chains=2
-) 
-
-summary(skill_mf)
-
-prior_mf_correct <- c(
-  prior(normal(0, 0.2),class="Intercept"),
-  prior(normal(0,0.1),class="b")
-  )
-
-
-correct_mf <- brm(
-  correct ~ Gender, 
-  data = pool_long,
-  prior = prior_mf_correct,
-  family = "bernoulli",
-  sample_prior=T,
-  seed = 123, # Adding a seed makes results reproducible.
-  cores=2,
-  chains=2
-) 
-
-summary(correct_mf)
-
-
-male <- subset(pool_long, Gender == "Male")
-
-female <- subset(pool_long, Gender == "Female")
-
-table(male$correct)
-
-table(female$correct)
-
 ```
  
 
