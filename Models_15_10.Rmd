@@ -20,7 +20,7 @@ setwd("~/Bachelor-MM-/") #TRS
 ```{r}
 data_ib <- read.csv("implicit_bias/data_ib.csv")[,2:12]
 data_eb <- read.csv("explicit_bias/eb_results.csv")[, 2:6]
-data_db <- read.csv("decision_bias/disagree_sensitivity_db_long.csv")[, 2:40]
+data_db <- read.csv("decision_bias/disagree_sensitivity_db_long.csv")[, 2:44]
 ```
 
 
@@ -356,7 +356,7 @@ prior_db1 <- c(
 )
 
 #prior predictive check
-model_db1_prior <- brm(leader_behavior ~ 0 + Leader_gender:Follower_gender + (0 + skill_dif:Follower_gender | SubjectID), 
+model_db1_prior <- brm(leader_behavior ~ 0 + Leader_gender:Follower_gender + (0 + skill_dif_c:Follower_gender | SubjectID), 
                        prior = prior_db1, 
                        data = data_db, 
                        sample_prior = "only",
@@ -369,7 +369,7 @@ pp_check(model_db1_prior, nsamples = 100)
 
 
 model_db1 <- brm(
-  leader_behavior ~ 0 + Leader_gender : Follower_gender + ( 0 + skill_dif : Follower_gender | SubjectID),
+  leader_behavior ~ 0 + Leader_gender : Follower_gender + ( 0 + skill_dif_c : Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db1,
   sample_prior=T,
@@ -484,10 +484,151 @@ model_db4 <- brm(leader_behavior ~ 0 +conf_dif*Leader_gender:Follower_gender+ (0
 summary(model_db4)
 ```
 
+##Alternative skill measure
+
+###Analysis from last year (excluding skill difference)
+
+```{r model excluding skill dif, replication of effects from last year, 5}
+
+#Defining priors
+prior_db5 <- c(
+  prior(normal(0,.2),class="b"),
+  prior(normal(0,.1),class="sd")
+)
+
+#prior predictive check
+model_db5_prior <- brm(leader_behavior ~ 0 + Leader_gender:Follower_gender + (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
+                       prior = prior_db5, 
+                       data = data_db, 
+                       sample_prior = "only",
+                       iter = 4000, 
+                       family = "bernoulli", 
+                       chains = 2, 
+                       cores = 2)
+
+pp_check(model_db5_prior, nsamples = 100)
+
+
+model_db5 <- brm(
+  leader_behavior ~ 0 + Leader_gender : Follower_gender + ( 0 + skill_dif_roll_c : Follower_gender | SubjectID),
+  data = data_db,
+  prior = prior_db5,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4
+  #control = list(adapt_delta = 0.9) 
+) 
+summary(model_db5)
+```
+
+##New models
+```{r full model, 6}
+#Defining priors 
+prior_db6 <- c( 
+  prior(normal(0,.2),class="b"),
+  prior(normal(0,.1),class="sd")
+)
+
+#prior predictive check
+model_db6_prior <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_roll_c*Leader_gender:Follower_gender + (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
+                       prior = prior_db6, 
+                       data = data_db, 
+                       sample_prior = "only",
+                       iter = 4000, 
+                       family = "bernoulli", 
+                       chains = 2, 
+                       cores = 2)
+
+pp_check(model_db6_prior, nsamples = 100)
+
+
+model_db6 <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_roll_c*Leader_gender:Follower_gender + (0 + skill_dif_roll_c:Follower_gender | SubjectID),
+  data = data_db,
+  prior = prior_db6,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4
+  #control = list(adapt_delta = 0.9) 
+) 
+marginal_effects(model_db6)
+
+summary(model_db6) 
+```
+
+```{r model without confidence, 7}
+#Defining priors
+prior_db7 <- c(
+  prior(normal(0,.2),class="b"),
+  prior(normal(0,.1),class="sd")
+)
+
+#prior predictive check
+model_db7_prior <- brm(leader_behavior ~ 0 + skill_dif_roll_c*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
+                       prior = prior_db7, 
+                       data = data_db, 
+                       sample_prior = "only",
+                       iter = 4000, 
+                       family = "bernoulli", 
+                       chains = 2, 
+                       cores = 2)
+
+pp_check(model_db7_prior, nsamples = 100)
+
+
+model_db7 <- brm(leader_behavior ~ 0 +skill_dif_roll_c*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID),
+  data = data_db,
+  prior = prior_db7,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4
+  #control = list(adapt_delta = 0.9) 
+) 
+summary(model_db7)
+```
+
+```{r model without skill difference, 8}
+#Defining priors
+prior_db8 <- c(
+  prior(normal(0,.2),class="b"),
+  prior(normal(0,.1),class="sd")
+)
+
+#prior predictive check
+model_db8_prior <- brm(leader_behavior ~ 0 + conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
+                       prior = prior_db8, 
+                       data = data_db, 
+                       sample_prior = "only",
+                       iter = 4000, 
+                       family = "bernoulli", 
+                       chains = 2, 
+                       cores = 2)
+
+pp_check(model_db8_prior, nsamples = 100)
+
+
+model_db8 <- brm(leader_behavior ~ 0 +conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID),
+  data = data_db,
+  prior = prior_db8,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4
+  #control = list(adapt_delta = 0.9) 
+) 
+summary(model_db8)
+```
+
+
 ##Waic
 ```{r waic}
-waic(model_db1, model_db2, model_db3, model_db4)
-
+waic(model_db1, model_db2, model_db3, model_db4, model_db5, model_db6, model_db7, model_db8)
 
 ```
 
@@ -543,29 +684,6 @@ hypothesis(model_db2, "(Leader_genderMale:Follower_genderMale - Leader_genderMal
 
 ```
 
-
-
-                                                             Estimate Est.Error l-95% CI u-95% CI
-conf_dif                                                         0.63      0.15     0.33     0.93
-skill_dif                                                        1.45      0.14     1.18     1.72
-conf_dif:skill_dif                                               0.73      0.15     0.43     1.03
-Leader_genderFemale:Follower_genderFemale                        0.39      0.17     0.07     0.72
-Leader_genderMale:Follower_genderFemale                          0.38      0.17     0.05     0.71
-Leader_genderFemale:Follower_genderMale                          0.35      0.17     0.01     0.69
-Leader_genderMale:Follower_genderMale                            0.41      0.17     0.07     0.75
-conf_dif:Leader_genderFemale:Follower_genderFemale               0.15      0.16    -0.17     0.47
-conf_dif:Leader_genderMale:Follower_genderFemale                 0.17      0.16    -0.14     0.49
-conf_dif:Leader_genderFemale:Follower_genderMale                 0.06      0.17    -0.28     0.39
-conf_dif:Leader_genderMale:Follower_genderMale                   0.24      0.17    -0.08     0.56
-skill_dif:Leader_genderFemale:Follower_genderFemale              0.37      0.17     0.03     0.69
-skill_dif:Leader_genderMale:Follower_genderFemale                0.36      0.17     0.02     0.71
-skill_dif:Leader_genderFemale:Follower_genderMale                0.31      0.17    -0.02     0.64
-skill_dif:Leader_genderMale:Follower_genderMale                  0.40      0.17     0.07     0.73
-conf_dif:skill_dif:Leader_genderFemale:Follower_genderFemale     0.19      0.17    -0.14     0.51
-conf_dif:skill_dif:Leader_genderMale:Follower_genderFemale       0.19      0.16    -0.14     0.50
-conf_dif:skill_dif:Leader_genderFemale:Follower_genderMale       0.11      0.16    -0.21     0.43
-conf_dif:skill_dif:Leader_genderMale:Follower_genderMale         0.25      0.17    -0.08     0.60
-                                                             
 
 
 ##Plotting
