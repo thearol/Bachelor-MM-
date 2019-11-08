@@ -460,7 +460,7 @@ prior_db4 <- c(
 )
 
 #prior predictive check
-model_db4_prior <- brm(leader_behavior ~ 0 + conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
+model_db4_prior <- brm(leader_behavior ~ 0 + conf_dif_c*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID), 
                        prior = prior_db4, 
                        data = data_db, 
                        sample_prior = "only",
@@ -472,7 +472,7 @@ model_db4_prior <- brm(leader_behavior ~ 0 + conf_dif*Leader_gender:Follower_gen
 pp_check(model_db4_prior, nsamples = 100)
 
 
-model_db4 <- brm(leader_behavior ~ 0 +conf_dif*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID),
+model_db4 <- brm(leader_behavior ~ 0 +conf_dif_c*Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db4,
   sample_prior=T,
@@ -566,10 +566,23 @@ model_db6 <- brm(
 ) 
 
 
+# Model answer predicted by gender and difficulty
+model_db7 <- brm(
+  response_dummy ~ diff:Gender + (1+diff|SubjectID), 
+  data = data_db_all,
+  prior = prior_db6,
+  family = "bernoulli",
+  sample_prior=T,
+  seed = 123, # Adding a seed makes results reproducible.
+  cores=4,
+  chains=4
+) 
+
+
 ##MODELLING SKILL FROM CORRECT
 
 #Model predicting correctness from gender
-model_db7 <- brm(
+model_db8 <- brm(
   Correct ~ Gender + (1+diff|SubjectID), 
   data = data_db_all,
   prior = prior_db6,
@@ -587,15 +600,76 @@ model_db7 <- brm(
 ```{r waic}
 waic(model_db1, model_db2, model_db3, model_db4)
 
+
 ```
 
 ## Hypothesis testing
+
+
+##Are men better than women? 
+```{r}
+#model db6 with star
+hypothesis(model_db6, "diff = (diff+diff:GenderMale)")
+
+#model db7 with colon 
+hypothesis(model_db7, "diff:GenderFemale < diff:GenderMale")
+```
+
+
+##Are females more discriminative towards their partner gender in terms of confidence?
+```{r}
+#model db5 
+hypothesis(model_db5, "(Intercept - (Intercept + Partner_genderMale)) > ((Intercept + GenderMale) -  (Intercept + GenderMale:Partner_genderMale))")
+
+
+```
+
+##Males generally express higher confidence than females
+
+```{r}
+#model db5
+hypothesis(model_db5, "((Intercept + (Intercept + Partner_genderMale)) / 2) < (((Intercept + GenderMale) + (Intercept + GenderMale:Partner_genderMale))/2)")
+```
+
+##Males exploit the information given by the confidence of their partner more than females, when making a final decision
+```{r}
+#testing this hypothsis with model_db2
+hypothesis(model_db2, "((conf_dif_c:Leader_genderFemale:Follower_genderFemale + conf_dif_c:Leader_genderFemale:Follower_genderMale)/2) > ( (conf_dif_c:Leader_genderMale:Follower_genderFemale + conf_dif_c:Leader_genderMale:Follower_genderMale)/2) ")
+
+```
+
+##Females are more discriminative to their follower's gender in terms of the degree to which they exploit the information given by their partner's confidence than males
+```{r}
+
+hypothesis(model_db2, "(conf_dif_c:Leader_genderFemale:Follower_genderMale - conf_dif_c:Leader_genderFemale:Follower_genderFemale) > ( conf_dif_c:Leader_genderMale:Follower_genderMale - conf_dif_c:Leader_genderMale:Follower_genderFemale) ")
+
+
+```
+
+
+##Males exploit the information given by the skill of their partner more than females, when making a final decision
+```{r}
+#testing this hypothsis with model_db2
+hypothesis(model_db2, "((skill_dif_c:Leader_genderFemale:Follower_genderFemale + skill_dif_c:Leader_genderFemale:Follower_genderMale)/2) > ( (skill_dif_c:Leader_genderMale:Follower_genderFemale + skill_dif_c:Leader_genderMale:Follower_genderMale)/2) ")
+
+```
+
+##Females are more discriminative to their follower's gender in terms of the degree to which they exploit the information given by their partner's skill than males
+```{r}
+
+hypothesis(model_db2, "(skill_dif_c:Leader_genderFemale:Follower_genderMale - skill_dif_c:Leader_genderFemale:Follower_genderFemale) < ( skill_dif_c:Leader_genderMale:Follower_genderMale - skill_dif_c:Leader_genderMale:Follower_genderFemale) ")
+
+
+```
+
+
+
 ###For the simple model (excluding skill difference and confidence difference)
 H1: there is a leader effect: male leaders tend to surrender less than female leaders
 ```{r H1: there is a leader effect: male leaders tend to surrender less than female leaders}
 #H1: In general male leader tend to surrender less than female leaders
 
-hypothesis(model_db1, "(Leader_genderMale:Follower_genderMale + Leader_genderMale:Follower_genderFemale)/2 < (Leader_genderFemale:Follower_genderMale + Leader_genderFemale:Follower_genderMale)/2")
+hypothesis(model_db2, "(Leader_genderMale:Follower_genderMale + Leader_genderMale:Follower_genderFemale)/2 < (Leader_genderFemale:Follower_genderMale + Leader_genderFemale:Follower_genderMale)/2")
 
 ```
 
@@ -603,15 +677,15 @@ H2: there is a follower effect: leaders tend to surrender more to men than to wo
 ```{r H2: there is a follower effect: leaders tend to surrender more to men than to women }
 
 # H2: There is a follower effect: leaders tend to surrender more to men than to women
-hypothesis(model_db1, "(Leader_genderMale:Follower_genderMale + Leader_genderFemale:Follower_genderMale)/2 > (Leader_genderMale:Follower_genderFemale + Leader_genderFemale:Follower_genderFemale)/2")
+hypothesis(model_db2, "(Leader_genderMale:Follower_genderMale + Leader_genderFemale:Follower_genderMale)/2 > (Leader_genderMale:Follower_genderFemale + Leader_genderFemale:Follower_genderFemale)/2")
 
 
 ```
 
-H3: There is an interaction: males are more discriminative as to their followers gender than females are
-```{r H3: there is an interaction, males are more discriminative as to their followers gender than females are }
+H3: There is an interaction: Females are more discriminative as to their followers gender than males are
+```{r H3: there is an interaction, females are more discriminative as to their followers gender than males are }
 
-hypothesis(model_db1, "(Leader_genderMale:Follower_genderMale - Leader_genderMale:Follower_genderFemale) > (Leader_genderFemale:Follower_genderMale - Leader_genderFemale:Follower_genderFemale)")
+hypothesis(model_db2, "(Leader_genderMale:Follower_genderMale - Leader_genderMale:Follower_genderFemale) < (Leader_genderFemale:Follower_genderMale - Leader_genderFemale:Follower_genderFemale)")
 
 
 ```
@@ -644,6 +718,20 @@ hypothesis(model_db2, "(Leader_genderMale:Follower_genderMale - Leader_genderMal
 
 
 ##Plotting
+
+
+##Look into confidence variable 
+
+```{r}
+conf_plot <- ggplot(data_db, aes(x=Leader_gender, y=conf_dif_c, fill = Follower_gender)) + geom_boxplot() + facet_wrap(~Leader_gender)
+conf_plot
+
+
+plot1 <- ggplot(data_db, aes(x=conf_dif_c, y = leader_behavior, fill = Leader_gender)) + geom_point() + facet_wrap(~Leader_gender)
+plot1
+
+
+```
 
 ```{r prepare predictions}
 nd <- expand.grid(tibble(
