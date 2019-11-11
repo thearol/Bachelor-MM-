@@ -342,6 +342,247 @@ hypothesis(model_eb3, "benevolent_score > 0")
 
 ```
 
+##Plotting explicit bias
+
+###H3.1.1
+```{r prepare predictions}
+nd_eb1.1 <- expand.grid(tibble(
+         gender=factor(0:1) %>% 
+           rep(., times = 10),
+         ID = NA))
+
+nd_eb1.1$gender <- ifelse(nd_eb1.1$gender == 0, "Male", "Female")
+
+pred_eb1.1 <-
+  predict(model_eb1.1, newdata = nd_eb1.1) %>%  # we can use the same nd data from last time
+  as_tibble() %>%
+  bind_cols(nd_eb1.1)
+
+pred_eb1.1 <- pred_eb1.1 %>% group_by(gender) %>% summarise(mean_prediction = mean(Estimate))
+```
+
+
+```{r H3.1.1 plot}
+#create the plot
+H3.1.1 <- ggplot(data_eb, aes(x = gender, y = overall_score, fill = gender)) +
+  labs(x = "Gender", y = "Overall Sexism Score", title = "Hypothesis 3.1.1") +
+  geom_boxplot(aes(x = gender, overall_score) , data = data_eb, width = 0.5, alpha = 0.4) + 
+  theme(legend.position = "none", panel.grid.minor = element_blank()) + 
+  geom_point(aes(x = gender, y = mean_prediction), data = pred_eb1.1, size = 2) + 
+  scale_fill_manual(values=c("orange", "blue")) +
+  theme(plot.title = element_text(hjust = 0.5))
+H3.1.1
+```
+
+###H3.2.1
+```{r prepare predictions}
+nd_eb1.1_2 <- expand.grid(tibble(
+         gender=factor(0:1) %>% 
+           rep(., times = 10),
+         ID = NA, 
+         hostile_score = NA))
+
+nd_eb1.1_2$gender <- ifelse(nd_eb1.1_2$gender == 0, "Male", "Female")
+
+#Inserting mean hostile score for the different gender
+nd_eb1.1_2$hostile_score[nd_eb1.1_2$gender== "Male"] <- data_eb %>% filter(gender=="Male")%>% summarise(hostile_score = as.numeric(mean(hostile_score)))
+
+nd_eb1.1_2$hostile_score[nd_eb1.1_2$gender== "Female"] <- data_eb %>% filter(gender=="Female")%>% summarise(hostile_score = as.numeric(mean(hostile_score)))
+
+#Changing hostile score to numeric
+nd_eb1.1_2$hostile_score <- as.numeric(nd_eb1.1_2$hostile_score)
+
+pred_eb1.1_2 <-
+  predict(model_eb2, newdata = nd_eb1.1_2) %>%  # we can use the same nd data from last time
+  as_tibble() %>%
+  bind_cols(nd_eb1.1_2)
+
+pred_eb1.1_2 <- pred_eb1.1_2 %>% group_by(gender) %>% summarise(mean_prediction = mean(Estimate))
+```
+
+
+```{r H3.2.1 plot}
+#create the plot
+H3.2.1 <- ggplot(data_eb, aes(x = gender, y = benevolent_score, fill = gender)) +
+  labs(x = "Gender", y = "Benevolent Score", title = "Hypothesis 3.2.1") +
+  geom_boxplot(aes(x = gender, benevolent_score) , data = data_eb, width = 0.5, alpha = 0.4) + 
+  theme(legend.position = "none", panel.grid.minor = element_blank()) + 
+  geom_point(aes(x = gender, y = mean_prediction), data = pred_eb1.1_2, size = 2) + 
+  scale_fill_manual(values=c("orange", "blue"))+
+  theme(plot.title = element_text(hjust = 0.5))
+H3.2.1
+```
+
+
+###H3.2.2
+```{r prepare predictions}
+nd_eb1.1_3 <- expand.grid(tibble(
+         gender=factor(0:1) %>% 
+           rep(., times = 3),
+         ID = NA, 
+         hostile_score = 0:5))
+
+nd_eb1.1_3$gender <- ifelse(nd_eb1.1_3$gender == 0, "Male", "Female")
+
+pred_eb1.1_3 <-
+  predict(model_eb2, newdata = nd_eb1.1_3) %>%  # we can use the same nd data from last time
+  as_tibble() %>%
+  bind_cols(nd_eb1.1_3)
+
+```
+
+
+```{r H3.2.1 plot}
+#create the plot
+H3.2.2 <- ggplot(data_eb, aes(x = hostile_score, y = benevolent_score)) +
+  labs(x = "Hostile Score", y = "Benevolent Score", title = "Hypothesis 3.2.2") +
+  geom_point(aes(x = hostile_score, benevolent_score, color = gender) , data = data_eb) + 
+  geom_smooth(aes(x = hostile_score, y = Estimate, color = gender), data = pred_eb1.1_3) + 
+    scale_color_manual(values=c("orange", "blue"))+
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+H3.2.2$labels$colour <- "Gender"
+
+H3.2.2
+```
+
+###H3.2.3
+```{r prepare predictions}
+nd_eb1.1_4 <- expand.grid(tibble(
+         gender=factor(0:1) %>% 
+           rep(., times = 3),
+         ID = NA, 
+         hostile_score = 0:5))
+
+nd_eb1.1_4$gender <- ifelse(nd_eb1.1_4$gender == 0, "Male", "Female")
+
+
+pred_eb1.1_4 <-
+  predict(model_eb2, newdata = nd_eb1.1_4) %>%  # we can use the same nd data from last time
+  as_tibble() %>%
+  bind_cols(nd_eb1.1_4)
+
+```
+
+
+```{r H3.2.3 plot}
+#create the plot
+H3.2.3 <- ggplot(data_eb, aes(x = hostile_score, y = benevolent_score)) +
+  labs(x = "Hostile Score", y = "Benevolent Score", title = "Hypothesis 3.2.3") +
+  geom_point(aes(x = hostile_score, benevolent_score) , data = data_eb) + 
+  geom_smooth(aes(x = hostile_score, y = Estimate), data = pred_eb1.1_4) + 
+    scale_color_manual(values=c("orange", "blue"))+
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+H3.2.3$labels$colour <- "Gender"
+
+H3.2.3
+```
+
+###H3.3.1
+```{r prepare predictions}
+nd_eb1.1_5 <- expand.grid(tibble(
+         gender=factor(0:1) %>% 
+           rep(., times = 10),
+         ID = NA, 
+         benevolent_score = NA))
+
+nd_eb1.1_5$gender <- ifelse(nd_eb1.1_5$gender == 0, "Male", "Female")
+
+#Inserting mean hostile score for the different gender
+nd_eb1.1_5$benevolent_score[nd_eb1.1_2$gender== "Male"] <- data_eb %>% filter(gender=="Male")%>% summarise(benevolent_score = as.numeric(mean(benevolent_score)))
+
+nd_eb1.1_5$benevolent_score[nd_eb1.1_2$gender== "Female"] <- data_eb %>% filter(gender=="Female")%>% summarise(benevolent_score = as.numeric(mean(benevolent_score)))
+
+#Changing hostile score to numeric
+nd_eb1.1_5$benevolent_score <- as.numeric(nd_eb1.1_5$benevolent_score)
+
+pred_eb1.1_5 <-
+  predict(model_eb3, newdata = nd_eb1.1_5) %>%  # we can use the same nd data from last time
+  as_tibble() %>%
+  bind_cols(nd_eb1.1_5)
+
+pred_eb1.1_5 <- pred_eb1.1_5 %>% group_by(gender) %>% summarise(mean_prediction = mean(Estimate))
+```
+
+
+```{r H3.3.1 plot}
+#create the plot
+H3.3.1 <- ggplot(data_eb, aes(x = gender, y = hostile_score, fill = gender)) +
+  labs(x = "Gender", y = "Hostile Score", title = "Hypothesis 3.3.1") +
+  geom_boxplot(aes(x = gender, hostile_score) , data = data_eb, width = 0.5, alpha = 0.4) + 
+  theme(legend.position = "none", panel.grid.minor = element_blank()) + 
+  geom_point(aes(x = gender, y = mean_prediction), data = pred_eb1.1_5, size = 2) + 
+  scale_fill_manual(values=c("orange", "blue"))+
+  theme(plot.title = element_text(hjust = 0.5))
+H3.3.1
+```
+
+
+###H3.3.2
+```{r prepare predictions}
+nd_eb1.1_6 <- expand.grid(tibble(
+         gender=factor(0:1) %>% 
+           rep(., times = 3),
+         ID = NA, 
+         benevolent_score = 0:5))
+
+nd_eb1.1_6$gender <- ifelse(nd_eb1.1_6$gender == 0, "Male", "Female")
+
+pred_eb1.1_6 <-
+  predict(model_eb3, newdata = nd_eb1.1_6) %>%  # we can use the same nd data from last time
+  as_tibble() %>%
+  bind_cols(nd_eb1.1_6)
+
+```
+
+
+```{r H3.3.2 plot}
+#create the plot
+H3.3.2 <- ggplot(data_eb, aes(x = benevolent_score, y = hostile_score)) +
+  labs(x = "Benevolent Score", y = "Hostile Score", title = "Hypothesis 3.3.2") +
+  geom_point(aes(x = benevolent_score, hostile_score, color = gender) , data = data_eb) + 
+  geom_smooth(aes(x = benevolent_score, y = Estimate, color = gender), data = pred_eb1.1_6) + 
+    scale_color_manual(values=c("orange", "blue"))+
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+H3.3.2$labels$colour <- "Gender"
+
+H3.3.2
+```
+
+###H3.3.3
+```{r prepare predictions}
+nd_eb1.1_7 <- expand.grid(tibble(
+         gender=factor(0:1) %>% 
+           rep(., times = 3),
+         ID = NA, 
+         benevolent_score = 0:5))
+
+nd_eb1.1_7$gender <- ifelse(nd_eb1.1_7$gender == 0, "Male", "Female")
+
+
+pred_eb1.1_7 <-
+  predict(model_eb3, newdata = nd_eb1.1_7) %>%  # we can use the same nd data from last time
+  as_tibble() %>%
+  bind_cols(nd_eb1.1_7)
+
+```
+
+
+```{r H3.3.3 plot}
+#create the plot
+H3.3.3 <- ggplot(data_eb, aes(x = benevolent_score, y = hostile_score)) +
+  labs(x = "Benevolent Score", y = "Hostile Score", title = "Hypothesis 3.3.3") +
+  geom_point(aes(x = benevolent_score, hostile_score) , data = data_eb) + 
+  geom_smooth(aes(x = benevolent_score, y = Estimate), data = pred_eb1.1_7) + 
+    scale_color_manual(values=c("orange", "blue"))+
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+H3.3.3$labels$colour <- "Gender"
+
+H3.3.3
+```
 
 #DECISION BIAS
 Below are models: Firstly, the reconstructon of the model and the results from last year. Secondly, new combinations of the variables with the goal of finding the best model. 
