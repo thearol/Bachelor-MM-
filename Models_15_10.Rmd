@@ -8,7 +8,7 @@ output: html_document
 #Getting packages
 ```{r loading packages, include = FALSE}
 library(pacman)
-p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel, utils)
+p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel, utils, boot, Hmisc)
 ```
 
 #Setting directory
@@ -21,13 +21,15 @@ setwd("~/Bachelor-MM-/") #TRS
 data_ib <- read.csv("implicit_bias/data_ib.csv")[,2:12]
 data_eb <- read.csv("explicit_bias/eb_results.csv")[, 2:6]
 data_db <- read.csv("decision_bias/disagree_sensitivity_db_long.csv")[, 2:44]
-data_db_all <- read.csv("data_db_all.csv")
+data_db_all <- read.csv("decision_bias/data_db_all.csv")
 ```
 
 
-#IMPLICIT BIAS, MODELS
+#IMPLICIT BIAS
 
 ```{r implicit model, condition}
+#Tranforming condition to a factor
+data_ib$condition <- as.factor(data_ib$condition)
 
 #to figure out which prior we need to make
 get_prior(rt_log ~ condition + (condition|ID), data = data_ib)
@@ -79,7 +81,7 @@ marginal_effects(model_ib1)
 #to figure out which prior I need to make 
 get_prior(rt ~  condition*gender + (condition|ID), data = data_ib)
 
-#Defining a prior OBS!
+#Defining a prior
 prior_ib2 = c(prior(normal(-0.4, 0.2), class = "Intercept"),
               prior(normal(0, 0.2), class = "b"),
               prior(normal(0, 0.2), class = "sigma"),
@@ -140,6 +142,77 @@ loo_compare(waic1, waic2)
 hypothesis(model_ib1, "condition > 0")
 hypothesis(model_ib2, "condition = condition + condition:genderMale")
 ```
+
+##Plotting, implicit bias
+
+###H2.1.1
+```{r prepare predictions}
+nd_ib1 <- expand.grid(tibble(
+         ID = NA, 
+         condition=factor(0:1) %>% 
+           rep(., times = 10)))
+pred_ib1 <-
+  predict(model_ib1, newdata = nd_ib1) %>%  # we can use the same nd data from last time
+  as_tibble() %>%
+  bind_cols(nd_ib1)
+
+pred_ib1$Estimate <- inv.logit(pred_ib1$Estimate)
+pred_ib1_mean <- pred_ib1 %>% group_by(condition) %>% summarise(mean_prediction = mean(Estimate))
+```
+
+
+```{r H2.1.1 plot}
+#create the plot
+H2.1.1 <- ggplot(data_ib, aes(x = condition, y = rt)) +
+  labs(x = "Condition", y = "Reaction time", title = "Hypothesis 2.1.1") +
+  geom_violin(aes(x = condition, Estimate, fill = condition) , data = pred_ib1, width = 0.5, alpha = 0.4) + 
+  theme(legend.position = "none", panel.grid.minor = element_blank()) + 
+  geom_point(aes(x = condition, y = mean_prediction), data = pred_ib1_mean, size = 2) + 
+  scale_fill_manual(values=c("orange", "blue")) +
+  theme(plot.title = element_text(hjust = 0.5))
+H2.1.1
+```
+
+###H2.2.1
+```{r prepare predictions}
+nd_ib2 <- expand.grid(tibble(
+         gender=factor(0:1) %>% 
+           rep(., times = 10),
+         ID = NA, 
+         condition=factor(0:1) %>% 
+           rep(., times = 10)))
+
+nd_ib2$gender <- ifelse(nd_ib2$gender == 0, "Male", "Female")
+
+pred_ib2 <-
+  predict(model_ib2, newdata = nd_ib2) %>%  # we can use the same nd data from last time
+  as_tibble() %>%
+  bind_cols(nd_ib2)
+
+pred_ib2$Estimate_prop <- inv.logit(pred_ib1$Estimate)
+
+pred_ib2$dif <- NA
+pred_ib2$dif[pred_ib2$gender == "Male"] <- pred_ib2$Estimate[pred_ib2$condition == 1 & pred_ib2$gender == "Male"] - pred_ib2$Estimate[pred_ib2$condition == 0 & pred_ib2$gender == "Male"]
+
+pred_ib2$dif[pred_ib2$gender == "Female"] <- pred_ib2$Estimate[pred_ib2$condition == 1 & pred_ib2$gender == "Female"] - pred_ib2$Estimate[pred_ib2$condition == 0 & pred_ib2$gender == "Female"]
+
+```
+
+
+```{r H2.2.1 plot}
+#create the plot
+H2.2.1 <- ggplot(pred_ib2, aes(x = gender, y = dif, fill = gender)) +
+  labs(x = "Gender", y = "Difference in reaction time (log)", title = "Hypothesis 2.2.1") +
+  geom_bar(stat="summary", position = position_dodge2())  + 
+stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) + 
+  #geom_point(aes(x = condition, y = Estimate_prop, fill = gender), data = pred_ib2, size = 2, position = position_dodge2(width= 0.1)) + 
+  scale_fill_manual(values=c("orange", "blue")) +
+  theme(plot.title = element_text(hjust = 0.5))
+H2.2.1
+```
+
+
+
 
 #EXPLICIT BIAS
 
@@ -645,7 +718,7 @@ model_db2_prior <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_roll_c*Leader_
 pp_check(model_db2_prior, nsamples = 100)
 
 
-model_db2 <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_roll_c*Leader_gender:Follower_gender + (0 + skill_dif_roll_c:Follower_gender | SubjectID),
+model_db2 <- brm(leader_behavior ~ 1 + Follower_gender + conf_dif_c*skill_dif_roll_c*Leader_gender:Follower_gender + (1 + Follower_gender + skill_dif_roll_c:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db2,
   sample_prior=T,
@@ -658,7 +731,25 @@ model_db2 <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_roll_c*Leader_gender
 marginal_effects(model_db2)
 
 summary(model_db2) 
+
+
 ```
+
+
+```{r model for extracting decision bias per ID}
+model_db2_ID <- brm(leader_behavior ~ 1 + Follower_gender + (conf_dif_c+skill_dif_roll_c):Follower_gender + (1 + Follower_gender + (conf_dif_c+skill_dif_roll_c):Follower_gender | SubjectID),
+  data = data_db,
+  prior = prior_db2,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4
+  #control = list(adapt_delta = 0.9) 
+) 
+```
+
+
 
 ```{r model without confidence, 3}
 #Defining priors
@@ -725,6 +816,23 @@ model_db4 <- brm(leader_behavior ~ 0 +conf_dif_c*Leader_gender:Follower_gender+ 
 ) 
 summary(model_db4)
 ```
+
+#Colonmodel...
+
+```{r}
+model_db4.1 <- brm(leader_behavior ~ 0 +conf_dif_c:Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID),
+  data = data_db,
+  prior = prior_db4,
+  sample_prior=T,
+  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4
+  #control = list(adapt_delta = 0.9) 
+) 
+summary(model_db4.1)
+```
+
 
 
 
@@ -978,7 +1086,15 @@ plot1
 nd <- expand.grid(tibble(
          Follower_gender=factor(0:1) %>% rep(., times = 10),
          Leader_gender = factor(0:1) %>% rep(., times = 10),
+         conf_dif = factor((4/1-1), (4/2-1),(4/3-1), 0, (3/1-1), (3/2-1), (3/4-1), (2/3-1), (2/4-1), (1/3-1), (1/4-1)) %>% rep(., times = 10),
          SubjectID = NA))
+
+nd <- expand.grid(tibble(
+         Follower_gender=seq(0:2) %>% rep(., times = 10),
+         Leader_gender = factor(0:2) %>% rep(., times = 10),
+         SubjectID = NA))
+
+
 
 nd$Follower_gender <- ifelse(nd$Follower_gender == 0, "Male", "Female")
 
