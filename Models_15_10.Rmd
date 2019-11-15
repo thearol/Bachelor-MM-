@@ -40,8 +40,6 @@ prior_ib1 = c(prior(normal(-0.4, 0.2), class = "Intercept"),
           prior(normal(0, 0.2), class = "sigma"),
           prior(normal(0, 0.1), class = "sd"))
 
-
-
 #Implicit model
 model_ib1_prior <- brm(rt_log ~ condition + (condition|ID),
                     data = data_ib,
@@ -51,9 +49,7 @@ model_ib1_prior <- brm(rt_log ~ condition + (condition|ID),
                     cores = 2,
                     chains = 2)
 
-
 pp_check(model_ib1_prior, nsamples = 100) #Doing a predictive prior check to test priors
-
 
 model_ib1 <- brm(rt_log ~ condition + (condition|ID),
                     data = data_ib,
@@ -66,7 +62,6 @@ model_ib1 <- brm(rt_log ~ condition + (condition|ID),
                     chains = 4)
 
 summary(model_ib1)
-
 
 #plotting
 plot(model_ib1)
@@ -86,9 +81,6 @@ prior_ib2 = c(prior(normal(-0.4, 0.2), class = "Intercept"),
               prior(normal(0, 0.2), class = "b"),
               prior(normal(0, 0.2), class = "sigma"),
               prior(normal(0, 0.1), class = "sd"))
-              
-
-
 
 #Implicit model
 model_ib2_prior <- brm(rt_log ~ condition*gender + (condition|ID),
@@ -98,7 +90,6 @@ model_ib2_prior <- brm(rt_log ~ condition*gender + (condition|ID),
                     sample_prior = "only",
                     cores = 2,
                     chains = 2)
-
 
 pp_check(model_ib2_prior, nsamples = 100) #Doing a predictive prior check to test priors
 
@@ -112,8 +103,6 @@ model_ib2 <- brm(rt_log ~ condition*gender + (condition|ID),
                     warmup = 2000,
                     cores = 4,
                     chains = 4)
-
-
 
 summary(model_ib2) 
 
@@ -139,8 +128,8 @@ loo_compare(waic1, waic2)
 
 ##Implicit bias, hypothesis testing
 ```{r}
-hypothesis(model_ib1, "condition > 0")
-hypothesis(model_ib2, "condition = condition + condition:genderMale")
+hypothesis(model_ib1, "condition1 > 0")
+hypothesis(model_ib2, "condition1 > condition1 + condition1:genderMale")
 ```
 
 ##Plotting, implicit bias
@@ -151,6 +140,7 @@ nd_ib1 <- expand.grid(tibble(
          ID = NA, 
          condition=factor(0:1) %>% 
            rep(., times = 10)))
+
 pred_ib1 <-
   predict(model_ib1, newdata = nd_ib1) %>%  # we can use the same nd data from last time
   as_tibble() %>%
@@ -158,12 +148,21 @@ pred_ib1 <-
 
 pred_ib1$Estimate <- inv.logit(pred_ib1$Estimate)
 pred_ib1_mean <- pred_ib1 %>% group_by(condition) %>% summarise(mean_prediction = mean(Estimate))
+
+pred_ib1$condition <- ifelse(pred_ib1$condition == 0, "Congruent", "Incongruent")
+
+
+data_ib_for_plot <- data_ib
+data_ib_for_plot$condition <- ifelse(data_ib_for_plot$condition == 0, "Congruent", "Incongruent")
+pred_ib1_mean$condition <- ifelse(pred_ib1_mean$condition == 0, "Congruent", "Incongruent")
+
+
 ```
 
 
 ```{r H2.1.1 plot}
 #create the plot
-H2.1.1 <- ggplot(data_ib, aes(x = condition, y = rt)) +
+H2.1.1 <- ggplot(data_ib_for_plot, aes(x = condition, y = rt)) +
   labs(x = "Condition", y = "Reaction time", title = "Hypothesis 2.1.1") +
   geom_violin(aes(x = condition, Estimate, fill = condition) , data = pred_ib1, width = 0.5, alpha = 0.4) + 
   theme(legend.position = "none", panel.grid.minor = element_blank()) + 
@@ -196,6 +195,12 @@ pred_ib2$dif[pred_ib2$gender == "Male"] <- pred_ib2$Estimate[pred_ib2$condition 
 
 pred_ib2$dif[pred_ib2$gender == "Female"] <- pred_ib2$Estimate[pred_ib2$condition == 1 & pred_ib2$gender == "Female"] - pred_ib2$Estimate[pred_ib2$condition == 0 & pred_ib2$gender == "Female"]
 
+pred_ib2_mean <- pred_ib2 %>% group_by(condition, gender) %>% summarise(mean_prediction = mean(Estimate))
+
+pred_ib2$condition <- ifelse(pred_ib2$condition == 0, "Congruent", "Incongruent")
+
+
+
 ```
 
 
@@ -204,13 +209,28 @@ pred_ib2$dif[pred_ib2$gender == "Female"] <- pred_ib2$Estimate[pred_ib2$conditio
 H2.2.1 <- ggplot(pred_ib2, aes(x = gender, y = dif, fill = gender)) +
   labs(x = "Gender", y = "Difference in reaction time (log)", title = "Hypothesis 2.2.1") +
   geom_bar(stat="summary", position = position_dodge2())  + 
-stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) + 
+geom_errorbar(aes(ymin=0, ymax=dif + Est.Error),width=.2,position=position_dodge(.9)) + 
   #geom_point(aes(x = condition, y = Estimate_prop, fill = gender), data = pred_ib2, size = 2, position = position_dodge2(width= 0.1)) + 
   scale_fill_manual(values=c("orange", "blue")) +
   theme(plot.title = element_text(hjust = 0.5))
 H2.2.1
+
+
 ```
 
+```{r}
+
+
+H2.2.1_lines <- ggplot(pred_ib2, aes(x = condition, y = Estimate, group = gender, color = gender)) + 
+  scale_color_manual(values=c("orange", "blue"), name = "Gender") + 
+  stat_summary(fun.data = "mean_cl_boot", color = "black", size = 1.5, geom = "point") + 
+  stat_summary(fun.y = mean, geom="line") + 
+  labs(x = "Condition", y = "Reaction time (log)", title = "Hypothesis 2.2.1")
+
+H2.2.1_lines
+
+
+```
 
 
 
@@ -1067,6 +1087,85 @@ hypothesis(model_db2, "(Leader_genderMale:Follower_genderMale - Leader_genderMal
 
 
 ##Plotting
+
+Model_db1
+Leader behavior ~ 0 + Leader gender:Follower gender + (0 + skill difference : Follower gender | Subject)
+
+
+```{r}
+nd_db1 <- expand.grid(tibble(
+         Follower_gender=factor(0:2) %>% rep(., times = 10),
+         Leader_gender = factor(0:2) %>% rep(., times = 10),
+         SubjectID = NA))
+
+
+
+nd_db1$Follower_gender <- ifelse(nd_db1$Follower_gender == 0, "Male", "Female")
+
+nd_db1$Leader_gender <- ifelse(nd_db1$Leader_gender == 0, "Male", "Female")
+
+
+pred_db1 <-
+  predict(model_db1, newdata = nd_db1, re_formula = ~ (0 + skill_dif_roll_c:Follower_gender | SubjectID)) %>%
+  as_tibble() %>%
+  bind_cols(nd_db1)
+
+```
+
+
+#H1.1.1: In general, male leaders tend to surrender less than female leaders.
+
+```{r}
+#create the plot
+H1.1.1 <- ggplot(data_db, aes(x = Leader_gender, y = leader_behavior, fill = Leader_gender)) +
+  labs(x = "Leader gender", y = "Predicted propensity to surrender", title = "H1.1.1") +
+  geom_boxplot(aes(x = Leader_gender, Estimate) , data = pred_db1, width = 0.5) + 
+  theme(legend.position = "none", panel.grid.minor = element_blank()) + 
+  geom_violin(aes(x = Leader_gender, y = Estimate), data = pred_db1, trim = FALSE, width =1, alpha = 0.1) + 
+  scale_y_continuous(breaks = sort(c(seq(min(pred_db1$Estimate), max(pred_db1$Estimate), length.out=5), 0.5))) + 
+  geom_hline(yintercept= 0.5, color = "black", linetype = "dashed", alpha = 0.8) + 
+  scale_fill_manual(values=c("orange", "blue"))
+
+H1.1.1
+
+```
+
+#H1.1.2: Leaders tend to surrender more to male followers than to female followers
+
+```{r}
+H1.1.2 <- ggplot(data_db, aes(x = Follower_gender, y = leader_behavior, fill = Follower_gender)) +
+  labs(x = "Follower gender", y = "Predicted propensity to surrender", title = "H1.1.2") +
+  geom_boxplot(aes(x = Follower_gender, Estimate) , data = pred_db1, width = 0.5) + 
+  theme(legend.position = "none", panel.grid.minor = element_blank()) + 
+  geom_violin(aes(x = Follower_gender, y = Estimate), data = pred_db1, trim = FALSE, width =1, alpha = 0.1) + 
+  scale_y_continuous(breaks = sort(c(seq(min(pred_db1$Estimate), max(pred_db1$Estimate), length.out=5), 0.5))) + 
+  geom_hline(yintercept= 0.5, color = "black", linetype = "dashed", alpha = 0.8) + 
+  scale_fill_manual(values=c("orange", "blue"))
+
+H1.1.2
+
+```
+
+
+#H1.1.3: Females are more discriminative towards their follower’s gender than males are, i.e. for female leaders, the gender of the follower makes a larger difference to their decision than it does for male leaders.
+
+```{r}
+H1.1.3 <- ggplot(pred_db1, aes(x = Leader_gender, y = Estimate, fill = Follower_gender)) + 
+  geom_violin(aes(x = Leader_gender, y = Estimate), data = pred_db1, width = 0.7, alpha = 0.8) + 
+  geom_hline(yintercept= 0.5, color = "black", linetype = "dashed", alpha = 0.8) + 
+  scale_y_continuous(breaks = sort(c(seq(min(pred_db1$Estimate), max(pred_db1$Estimate), length.out=5), 0.5))) + 
+  theme(panel.grid.minor = element_blank()) + 
+  labs(x = "Leader gender", y = "Predicted propensity to surrender", title = "H1.1.3") + 
+  stat_summary(fun.data=mean_sdl, geom="pointrange", color="black", position = position_dodge(width = 0.7), alpha = 0.8) +
+  labs(fill = "Follower gender") + 
+  scale_fill_manual(values=c("orange", "blue"))
+
+H1.1.3
+
+```
+
+
+
 
 
 ##Look into confidence variable 
