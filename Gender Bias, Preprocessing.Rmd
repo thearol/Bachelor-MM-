@@ -147,8 +147,121 @@ plot(eg, vertex.size=10, vertex.label=NA)
   mvbind(benevolent_score, hostile_score, rt_dif, DB, DB_skill, DB_conf) ~ 1  + (1|p|ID), 
 
 #Make network plot
-
 ```{r}
-summary(gb_model1_m)
+cor_f <- read.csv("cor_f.csv")[1:4,1:5]
+cor_f <- column_to_rownames(cor_f, loc = 1)
+
+cor_m <- read.csv("cor_m.csv")[1:4,1:5]
+cor_m <- column_to_rownames(cor_m, loc = 1)
+
+
+
 ```
+
+#MEN
+```{r}
+#Reshaping the data frame
+cor_m_df <- data.frame(FROM=rownames(cor_m)[row(cor_m)], TO=colnames(cor_m)[col(cor_m)], corr=do.call(c, c(cor_m)))
+
+cor_m_df$TO <- gsub("\\.", " ", cor_m_df$TO)
+
+###Edges
+
+#Adding variables of negative and positive correlation
+cor_m_df$corr_dir <- ifelse(cor_m_df$corr < 0, 1, 2)
+
+#Tranformsing the correlations into absolute values
+cor_m_df$corr <- abs(cor_m_df$corr)
+
+#Removing edges below 0.1
+cor_m_df$corr[cor_m_df$corr<0.01] <- NA
+
+###Nodes
+nodes <- as.data.frame(as.character(unique(cor_m_df[,1])))
+
+
+###PLOTTING
+
+#Creating graph object
+net_m <- graph_from_data_frame(d=cor_m_df, vertices=nodes, directed=F) 
+
+#Removing loops 
+net_m <- simplify(net_m, remove.multiple = F, remove.loops = T) 
+
+
+#Adding edge color based on positive or negative correlation
+colrs <- c("orange", "blue")
+
+E(net_m)$color <- colrs[E(net_m)$corr_dir]
+
+# Set edge width based on weight:
+E(net_m)$width <- E(net_m)$corr*15
+
+E(net_m)$length <- 1/(E(net_m)$corr)*15
+
+plot(net_m, vertex.label.color="black", vertex.label.dist=3, vertex.size=14, vertex.color="black", edge.curved=0, main = "Correlation plot (males)", layout = layout_nicely)
+
+legend(x=-1.3, y=-1.1, c("Negative correlation","Positive correlation"), pch=21,
+
+       col="#777777", pt.bg=colrs, pt.cex=2, cex=.8, bty="n", ncol=1)
+
+
+```
+
+#WOMEN
+```{r}
+#Reshaping the data frame
+cor_f_df <- data.frame(FROM=rownames(cor_f)[row(cor_f)], TO=colnames(cor_f)[col(cor_f)], corr=do.call(c, c(cor_f)))
+
+cor_f_df$TO <- gsub("\\.", " ", cor_f_df$TO)
+
+###Edges
+
+#Adding variables of negative and positive correlation
+cor_f_df$corr_dir <- ifelse(cor_f_df$corr < 0, 1, 2)
+
+#Tranformsing the correlations into absolute values
+cor_f_df$corr <- abs(cor_f_df$corr)
+
+#Removing edges below 0.1
+cor_f_df$corr[cor_f_df$corr<0.01] <- NA
+
+###Nodes
+nodes <- as.data.frame(as.character(unique(cor_f_df[,1])))
+
+
+###PLOTTING
+
+#Creating graph object
+net_f <- graph_from_data_frame(d=cor_f_df, vertices=nodes, directed=F) 
+
+#Removing loops 
+net_f <- simplify(net_f, remove.multiple = F, remove.loops = T) 
+
+
+#Adding edge color based on positive or negative correlation
+colrs <- c("orange", "blue")
+
+E(net_f)$color <- colrs[E(net_f)$corr_dir]
+
+# Set edge width based on weight:
+E(net_f)$width <- E(net_f)$corr*15
+
+E(net_f)$length <- 1/(E(net_f)$corr)*15
+
+plot(net_f, vertex.label.color="black", vertex.label.dist=3, vertex.size=14, vertex.color="black", edge.curved=0, main = "Correlation plot (females)", layout = layout_nicely)
+
+legend(x=-1.3, y=-1.1, c("Negative correlation","Positive correlation"), pch=21,
+
+       col="#777777", pt.bg=colrs, pt.cex=2, cex=.8, bty="n", ncol=1)
+
+
+```
+
+
+
+
+
+
+
 
