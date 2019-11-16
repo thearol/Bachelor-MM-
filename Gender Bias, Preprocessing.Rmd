@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #Getting packages
 ```{r loading packages, include = FALSE}
 library(pacman)
-p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel, utils)
+p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel, utils, igraph)
 ```
 
 #Setting directory
@@ -34,24 +34,103 @@ data_db_all <- read.csv("decision_bias/data_db_all.csv")
 data_gb <- unique(data_ib[, 1:3])
 
 #Adding rt dif
-data_gb$rt_dif <- as.data.frame(ranef(model_ib1))[, 5]
+data_gb$rt_dif <- as.data.frame(ranef(model_ib2))[, 5]
 
 #Adding sexism scores
-data_gb <- merge(data_gb, data_eb)
+data_gb <- merge(data_gb, data_eb[,1:3])
 
 #adding random effect of decision bias 
 data_gb$DB <- as.data.frame(ranef(model_db2_ID))[, 5]
-data_gb$DB_skill <- as.data.frame(ranef(model_db2_ID))[, 13] - as.data.frame(ranef(model_db2_ID))[, 9]
-data_gb$DB_conf <- 
+data_gb$DB_conf <- as.data.frame(ranef(model_db2_ID))[, 9] - as.data.frame(ranef(model_db2_ID))[, 13]
+data_gb$DB_skill <- as.data.frame(ranef(model_db2_ID))[, 17] - as.data.frame(ranef(model_db2_ID))[, 21]
+
+
+#Save estimates in cv for Riccardo
+write.csv(data_gb, file = "data_gender_bias.csv" )
+```
+
+
+```{r divide data in gender}
+data_gb_male <- filter(data_gb, gender == "Male")
+data_gb_female <- filter(data_gb, gender == "Female")
 
 ```
 
-#Network analysis
-MvBind(Ex_bs, Ex_hs, Im_b, D_b, D_b_skill, D_b_confidence) ~ 1 + Gender + (1|p|ID)
-P is a parameter, you can write whatever
-Prior(LKJ(5), class =cor)
-Prior that makes sense for correlations
-Will get three values  	, which will explain the correlation between the variables
 
+
+#Network analysis
+```{r grand finale}
+#prior for gb model
+
+prior_gb <- c(
+ prior(normal(0,1), class=Intercept),
+ prior(lkj(5), class=rescor)
+)
+
+#female netowrk
+gb_model1_f <- brm(
+  mvbind(benevolent_score, hostile_score, rt_dif, DB, DB_skill, DB_conf) ~ 1,
+  data = data_gb_female, 
+  chains = 2,
+  iter = 8000,
+  cores = 2,
+  sample_prior=T,
+  prior = prior_gb, 
+  family = gaussian, 
+  control = list(adapt_delta = 0.99, max_treedepth = 15))
+
+
+#male network model
+gb_model1_m <- brm(
+  mvbind(benevolent_score, hostile_score, rt_dif, DB, DB_skill, DB_conf) ~ 1,
+  data = data_gb_male, 
+  chains = 2,
+  iter = 8000,
+  cores = 2,
+  sample_prior=T,
+  prior = prior_gb, 
+  family = gaussian, 
+  control = list(adapt_delta = 0.99, max_treedepth = 15))
+
+
+cor_f <- as.data.frame(vcov(gb_model1_f, correlation = TRUE))
+cor_m <- as.data.frame(vcov(gb_model1_m, correlation = TRUE))
+
+
+```
+
+
+```{r prepare dataframe}
+#put Na in diagonal
+diag(cor_f) = NA
+
+diag(cor_m) = NA
+
+#change column names
+names(cor_f) <- c("Benevolent", "Hostile", "Implicit bias", "Decision bias", "Skill", "Confidence")
+names(cor_m) <- c("Benevolent", "Hostile", "Implicit bias", "Decision bias", "Skill", "Confidence")
+
+row.names(cor_f) <- c("Benevolent", "Hostile", "Implicit bias", "Decision bias", "Skill", "Confidence")
+row.names(cor_m) <- c("Benevolent", "Hostile", "Implicit bias", "Decision bias", "Skill", "Confidence")
+
+
+write.csv(cor_f, file = "cor_f.csv")
+write.csv(cor_m, file = "cor_m.csv")
+
+
+#plot network
+plot(cor_f, edge.arrow.size=.5)
+
+
+plot(cof_f)
+```
+
+
+  mvbind(benevolent_score, hostile_score, rt_dif, DB, DB_skill, DB_conf) ~ 1  + (1|p|ID), 
 
 #Make network plot
+
+```{r}
+summary(gb_model1_m)
+```
+
