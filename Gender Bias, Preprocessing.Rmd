@@ -97,6 +97,16 @@ cor_f <- as.data.frame(vcov(gb_model1_f, correlation = TRUE))
 cor_m <- as.data.frame(vcov(gb_model1_m, correlation = TRUE))
 
 
+gb_model1_f_try <- brm(
+  mvbind(benevolent_score, hostile_score, rt_dif, DB, DB_skill, DB_conf) ~ 1  + (1|ID),
+  data = data_gb_female, 
+  chains = 2,
+  iter = 8000,
+  cores = 2,
+  sample_prior=T,
+  prior = prior_gb, 
+  family = gaussian, 
+  control = list(adapt_delta = 0.99, max_treedepth = 15))
 ```
 
 
@@ -119,10 +129,18 @@ write.csv(cor_m, file = "cor_m.csv")
 
 
 #plot network
+
+V(cor_f)
+
+cor_f[]
+
 plot(cor_f, edge.arrow.size=.5)
 
+eg <- make_empty_graph(40)
+plot(eg, vertex.size=10, vertex.label=NA)
 
-plot(cof_f)
+
+
 ```
 
 
