@@ -1,0 +1,75 @@
+---
+title: "Simulation_preparation"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r working directory and data and library}
+library(pacman)
+p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel, utils, boot, Hmisc)
+
+setwd("~/Bachelor-MM-/") #TRS
+
+
+data_ib <- read.csv("implicit_bias/data_ib.csv")[,2:12]
+```
+
+```{r prepare filtered dataframe}
+female_names <- c("Josefine", "Line", "Mette", "Ruth", "Birthe", "Camilla", "Hanne" )
+male_names <- c("Sebastian", "Ole", "Casper", "Jens", "Mikkel", "Rasmus", "Morten")
+career_items <- c("Virksomhed", "Løn", "Kontor", "Karriere", "Akademiker", "Ledelse", "Handel")
+
+data_ib_filtered_incongruent <- filter(data_ib, (block == 3 | block == 4) & (word %in% female_names | word %in% career_items))
+data_ib_filtered_congruent <- filter(data_ib, (block == 6 | block == 7) & (word %in% male_names | word %in% career_items))
+
+
+data_ib_filtered <- rbind(data_ib_filtered_congruent, data_ib_filtered_incongruent)
+```
+
+```{r model with filtered data}
+#Tranforming condition to a factor
+data_ib_filtered$condition <- as.factor(data_ib_filtered$condition)
+
+#to figure out which prior we need to make
+get_prior(rt_log ~ condition*gender + (condition|ID), data = data_ib_filtered)
+
+#Defining a prior 
+prior_ib2.2 = c(prior(normal(-0.4, 0.2), class = "Intercept"), 
+          prior(normal(0, 0.2), class = "b"), 
+          prior(normal(0, 0.2), class = "sigma"),
+          prior(normal(0, 0.1), class = "sd"))
+
+#Implicit model
+model_ib2.2_prior <- brm(rt_log ~ condition*gender + (condition|ID),
+                    data = data_ib_filtered,
+                    family = gaussian(),
+                    prior = prior_ib2.2,
+                    sample_prior = "only",
+                    cores = 2,
+                    chains = 2)
+
+pp_check(model_ib2.2_prior, nsamples = 100) #Doing a predictive prior check to test priors
+
+model_ib2.2 <- brm(rt_log ~ condition*gender + (condition|ID),
+                    data = data_ib_filtered,
+                    family = gaussian(),
+                    prior = prior_ib2.2,
+                    sample_prior = TRUE,
+                    iter = 5000,
+                    warmup = 2000,
+                    cores = 4,
+                    chains = 4)
+
+summary(model_ib2.2)
+
+#plotting
+plot(model_ib2.2)
+
+marginal_effects(model_ib2.2)
+```
+

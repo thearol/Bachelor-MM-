@@ -312,6 +312,27 @@ marginal_effects(
 marginal_effects(m_sensitivity)
 ```
 
+
+```{r}
+p <- qplot(Intercept, Slope, data = sensitivity_scores)
+
+# Fixed slopes and intercepts
+p + geom_abline()
+
+
+p <- ggplot(sensitivity_scores, aes(x = wt, y=mpg), . ~ cyl) + geom_point()
+p + geom_abline(data=sensitivity_scores, aes(intercept=Intercept, slope=Slope))
+
+p <- ggplot(mtcars, aes(x = wt, y=mpg), . ~ cyl) + geom_point()
+df <- data.frame(a=rnorm(10, 25), b=rnorm(10, 0))
+p + geom_abline(aes(intercept=a, slope=b), data=df)
+
+p + stat_function(fun = function(Slope) exp(Slope)/(1+exp(Slope)), n = 100) 
+```
+
+
+
+
 ```{r plots that did not work, eval = FALSE, include = FALSE}
 
 
