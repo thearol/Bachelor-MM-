@@ -84,9 +84,11 @@ class Simulation:
             
 
     def talent_review(self):
-        """Weight ratings with confidence"""
-        conf_m = 1.075
-        conf_f = 0.925
+        """Defining the confidence expressions for gender combinations"""
+        conf_FF = 0.9796
+        conf_MF = 1.0340
+        conf_FM = 0.9297
+        conf_MM = 1.0567
         """Looks at each employee object in dictionary, checks gender and gives
         random performance rating"""
         for level in range(self.num_employee_levels): #loop through the levels
@@ -108,7 +110,7 @@ class Simulation:
                     
                     comitee = random.choice(employees_at_level_8, comitee_size)
 
-                    for i in comitee: #Making loop to count number of different gender at lvel 7
+                    for i in comitee: #Making loop to count number of different gender at level 7
                         if i.gender == "men":
                             men_in_comitee = float(men_in_comitee + 1)
                         else:
@@ -129,24 +131,40 @@ class Simulation:
                     current_bias_F = weighted_bias_FF + weighted_bias_MF
                     current_bias_M = weighted_bias_FM + weighted_bias_MM
                     
+                    #print("high level,  bias F", current_bias_F)
+                    #print("high level,  bias M", current_bias_M)
+                    
+                    #Weighing the confidence in relation to gender proportion in hiring comitee
+                    weighted_conf_FF = float(conf_FF)*(float(women_in_comitee)/float(comitee_size))
+                    weighted_conf_MF = float(conf_MF)*(float(women_in_comitee)/float(comitee_size))
+                    weighted_conf_MM = float(conf_MM)*(float(men_in_comitee)/float(comitee_size))
+                    weighted_conf_FM = float(conf_FM)*(float(men_in_comitee)/float(comitee_size))
+                    
+                    #Calculating current bias aginst men and women as a product of weighted  
+                    current_conf_F = weighted_conf_FF + weighted_conf_FM
+                    current_conf_M = weighted_conf_MM + weighted_conf_MF
+                    
+                    #print("high level,  conf F", current_conf_F)
+                    #print("high level,  conf M", current_conf_M)
+                    
                     if employee.gender == "men": #if own gender equals the gender which is favored, do this
                         previous_rating = employee.rating/2
                         # Saves updated rating to Employee object
-                        #employee.rating =previous_rating + (new_rating * current_bias_M) #add the bias
-                        #print("employee rating male")
-                        #print(employee.rating)
-                        employee.rating =(previous_rating + (new_rating * current_bias_M)*conf_m) 
-                        #print("employee appearance! male")
-                        #print(employee.rating)
+                        employee.rating = (previous_rating + new_rating)
+                        #print("high level employee rating men before bias before conf", employee.rating)
+                        employee.rating = employee.rating* current_conf_M
+                        #print("high level employee rating men before bias after conf", employee.rating)
+                        employee.rating = employee.rating * current_bias_M 
+                        #print("high level employee rating men after bias", employee.rating)
                     else:
                         previous_rating = employee.rating/2
                         # Saves updated rating to Employee object
-                        #employee.rating =previous_rating + (new_rating * current_bias_F) #add the bias
-                        #print("employee rating female")
-                        #print(employee.rating)
-                        employee.rating = (previous_rating + (new_rating * current_bias_F)*conf_f)
-                        #print("employee appearance! female")
-                        #print(employee.rating)
+                        employee.rating = (previous_rating + new_rating)
+                        #print("high level employee rating female before bias before conf", employee.rating)
+                        employee.rating = employee.rating * current_conf_F
+                        #print("high level employee rating female before bias after conf", employee.rating)
+                        employee.rating = employee.rating * current_bias_F 
+                        #print("high level employee rating female after bias", employee.rating)
             
             if level in (0, 1, 2, 3, 4, 5):    
                 for employee in employee_list: #for i in employee list --> so two loops in one 
@@ -202,17 +220,27 @@ class Simulation:
                     #Calculating current bias aginst men and women as a product of weighted  
                     current_bias_F = weighted_bias_FF + weighted_bias_MF
                     current_bias_M = weighted_bias_FM + weighted_bias_MM
+                    
+                    #Weighing the confidence in relation to gender proportion in hiring comitee
+                    weighted_conf_FF = float(conf_FF)*(float(women_in_comitee)/float(comitee_size))
+                    weighted_conf_MF = float(conf_MF)*(float(women_in_comitee)/float(comitee_size))
+                    weighted_conf_MM = float(conf_MM)*(float(men_in_comitee)/float(comitee_size))
+                    weighted_conf_FM = float(conf_FM)*(float(men_in_comitee)/float(comitee_size))
+                    
+                    #Calculating current bias aginst men and women as a product of weighted  
+                    current_conf_F = weighted_conf_FF + weighted_conf_FM
+                    current_conf_M = weighted_conf_MM + weighted_conf_MF
 
                     if employee.gender == "men": #if own gender equals the gender which is favored, do this
                         previous_rating = employee.rating/2
                         # Saves updated rating to Employee object
-                        #employee.rating =previous_rating + (new_rating * current_bias_M) #add the bias
-                        employee.rating =(previous_rating + (new_rating * current_bias_M)*conf_m) 
+                        employee.rating = (previous_rating + new_rating) * current_conf_M
+                        employee.rating = employee.rating * current_bias_M 
                     else:
                         previous_rating = employee.rating/2
                         # Saves updated rating to Employee object
-                        #employee.rating = previous_rating + (new_rating * current_bias_F)
-                        employee.rating = (previous_rating + (new_rating * current_bias_F)*conf_f)
+                        employee.rating = (previous_rating + new_rating) * current_conf_F
+                        employee.rating = employee.rating * current_bias_F 
                     
     def attrit(self):
         """Looks at each employee in dictionary and randomly retains employees
@@ -280,7 +308,7 @@ class Control:
         self.promotion_bias_FM = int(promotion_bias_FM)
         self.promotion_bias_MM = int(promotion_bias_MM)
         self.promotion_bias_MF = int(promotion_bias_MF)
-        self.num_simulations = 1000 #defining number of simulations, usually set to 1000
+        self.num_simulations = 100 #defining number of simulations, usually set to 1000
         self.attrition = 15 #15% turnover rate is applied
         self.iterations_per_simulation = 1 #20 performance-review cycles are generated 
         self.num_positions_at_level = [500, 350, 200, 150, 100, 75, 40, 10] #define hierarchy
@@ -322,7 +350,8 @@ class Control:
 
 ####OUTPUT SECTION
 #Actual raesults from our experiment
-control = Control(-0.58, 0.58, -0.97, 0.97)
+#promotion_bias_FF, promotion_bias_FM, promotion_bias_MM, promotion_bias_MF
+control = Control(-2, 2, -2, 2)
 
 control.run_simulations()
 results = control.fetch_results()
