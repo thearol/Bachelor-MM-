@@ -1,6 +1,7 @@
 from numpy import random
 import numpy as np
 import pandas as pd
+from pprint import pprint
 #import matplotlib.pyplot
 
 DATA = pd.DataFrame(columns = ['Results'])
@@ -11,9 +12,11 @@ This defines a set of attributes that will characterize any object that is insta
 
 #define function for employees  
 class Employee: #Creating a prototype, which has certain function related to it 
-    def __init__(self, gender): #_init_ is known as a constructor in object oriented concepts: An object is created from the class and it allow the class to initialize the attributes of a class.
+    def __init__(self, gender, confidence): #_init_ is known as a constructor in object oriented concepts: An object is created from the class and it allow the class to initialize the attributes of a class.
         self.gender = gender #self represents the instance of the class. By using the "self" keyword we can access the attributes and methods of the class in python
         self.rating = 10.0
+        self.confidence = confidence
+
 
 
 class Result:
@@ -66,12 +69,18 @@ class Simulation:
             append = employee_list_at_level.append #append to employee list 
             if employee_list_at_level is not None: 
                 while len(employee_list_at_level) < positions: #while the number of employees is lower than the max number of posiitions at the level continue appending 
-                    append(Employee(next_gender))
+                    append(Employee(next_gender, confidence))
                     if next_gender == "women": #shift between men and women 
+                        confidence = 0.925
                         next_gender = "men"
+                        pprint(vars(Employee))
                     else: 
+                        confidence = 1.075
                         next_gender = "women"
+                        pprint(vars(Employee))
             level += 1 #go one level up
+                    
+
 
     def run(self):
         """Run simulation"""
@@ -265,7 +274,7 @@ class Control:
         self.promotion_bias_FM = int(promotion_bias_FM)
         self.promotion_bias_MM = int(promotion_bias_MM)
         self.promotion_bias_MF = int(promotion_bias_MF)
-        self.num_simulations = 1000 #defining number of simulations
+        self.num_simulations = 10 #defining number of simulations
         self.attrition = 15 #15% turnover rate is applied
         self.iterations_per_simulation = 20 #20 performance-review cycles are generated 
         self.num_positions_at_level = [500, 350, 200, 150, 100, 75, 40, 10] #define hierarchy

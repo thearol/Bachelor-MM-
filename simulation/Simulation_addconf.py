@@ -1,6 +1,8 @@
 from numpy import random
 import numpy as np
 import pandas as pd
+from numpy.random import choice
+
 #import matplotlib.pyplot
 
 DATA = pd.DataFrame(columns = ['Results'])
@@ -61,17 +63,28 @@ class Simulation:
         #Randomly assign gender to first employee
         next_gender = random.choice(gender)
         level = 0 #start at level 0
+        k = 1
+        CV_bias_F = 0.30
+        CV_bias_M = 0.70
         for positions in self.num_positions_at_level: #iterate over number of positions at the current level, e.g. [20,16,12,8,4] 
             employee_list_at_level = self.levels_to_employees.get(level) #start at level 0, will then build up to level 8
             append = employee_list_at_level.append #append to employee list 
-            if employee_list_at_level is not None: 
-                while len(employee_list_at_level) < positions: #while the number of employees is lower than the max number of posiitions at the level continue appending 
-                    append(Employee(next_gender))
-                    if next_gender == "women": #shift between men and women 
-                        next_gender = "men"
-                    else: 
-                        next_gender = "women"
+            if self.num_positions_at_level[1] == len(self.levels_to_employees.get(k)):
+                if employee_list_at_level is not None: 
+                    while len(employee_list_at_level) < positions: #while the number of employees is lower than the max number of posiitions at the level continue appending 
+                        weights = [CV_bias_M, CV_bias_F]
+                        gender_hired = choice(gender, p=weights)
+                        append(Employee(gender_hired))
+            elif self.num_positions_at_level[1] != len(self.levels_to_employees.get(k)):
+                if employee_list_at_level is not None: 
+                    while len(employee_list_at_level) < positions: #while the number of employees is lower than the max number of posiitions at the level continue appending 
+                        append(Employee(next_gender))
+                        if next_gender == "women": #shift between men and women 
+                            next_gender = "men"
+                        else: 
+                            next_gender = "women"
             level += 1 #go one level up
+                
 
     def run(self):
         """Run simulation"""
@@ -317,10 +330,11 @@ class Control:
     def run_simulations(self):
         """Run NUM_SIMULATIONS simulations"""
         self.results = [] #creating empty list
-        append = self.results.append 
+        append = self.results.append
         for _ in range(self.num_simulations):#_ emphasize the value in the xrange is subordinate, it just needs to run the number of iterations in this case 30 times - as it is 30 simulations
             simulation = Simulation(self.num_simulations, self.attrition, self.iterations_per_simulation, 
                 self.promotion_bias_FF, self.promotion_bias_FM, self.promotion_bias_MM, self.promotion_bias_MF, self.num_positions_at_level) #Adding information to the previously defined function
+            
             simulation.run() #run the simulation
             append(simulation.get_result()) #use the results function previously defined to append the results to results list
 
