@@ -114,7 +114,39 @@ m_sensitivity <- brm(
   control = list(adapt_delta = 0.9)
 ) 
 
-m_sensitivity
+marginal_effects(m_sensitivity)
+
+
+```
+
+
+#Spaghetti plot of all participants
+```{r}
+
+#setting working directory
+setwd("~/Bachelor-MM-/decision_bias")
+
+data <- read.csv("sensitivity_scores.csv", header = T, stringsAsFactors = F)
+
+p <- ggplot(data = data.frame(x = c(-9, 9)),aes(x))
+
+string <- "p"
+
+for (row in 1:128) {
+  intercept <- data[row,4]
+  slope <- data[row,5]
+  genderNumber <- as.numeric(str_extract(data[row,2], "\\d+"))
+  genderColor <- ifelse(genderNumber %% 2 == 0, "orange", "cornflowerblue")
+  
+  string <- paste(string, " + stat_function(colour = '",genderColor,"', alpha = 0.4, fun = function(x) 1 / (1 + exp(-",slope,"*(x-",intercept,"))), n = 100)", sep="")
+}
+
+plotti <- eval(parse(text = string))
+plotti
+
+
+#zoom for inspection
+#plotti + coord_cartesian(xlim=c(-2,2), ylim = c(0.35,0.65)) 
 
 ```
 
