@@ -199,7 +199,7 @@ class Simulation:
                     if employee.gender == "men": #if own gender equals the gender which is favored, do this
                         previous_rating = employee.rating/2
                         # Saves updated rating to Employee object
-                        employee.rating = (previous_rating + new_rating)
+                        employee.rating = previous_rating + new_rating
                         #print("high level employee rating men before bias before conf", employee.rating)
                         employee.rating = employee.rating* current_conf_M
                         #print("high level employee rating men before bias after conf", employee.rating)
@@ -232,7 +232,25 @@ class Simulation:
                     employees_lower_level_comitee = self.levels_to_employees.get(comitee_lower_level) #saving employees at level 7 in a list
                     employees_higher_level_comitee = self.levels_to_employees.get(comitee_higher_level) #saving employees at level 7 in a list
                     
-                    num_employees_higher_level_comitee = len(employees_higher_level_comitee)
+                    #Finding manager on the highest level(best performing at level)
+                    n = 0
+                    higher_level_comitee_list = []
+                    for emp in employees_higher_level_comitee:
+                        if n == 0: 
+                            manager = emp
+                            n = n + 1
+#                            print("first manager", manager.gender)
+                        elif emp.rating > manager.rating: 
+                            higher_level_comitee_list.append(manager)
+                            manager = emp
+#                            print("new manager", manager.gender)
+                        else: 
+                            higher_level_comitee_list.append(emp)
+#                            print("comitee list", len(comitee_list))
+
+#                        print("manager rating", manager.rating)
+
+                    num_employees_higher_level_comitee = len(higher_level_comitee_list)
                     num_employees_lower_level_comitee = len(employees_lower_level_comitee)
                     
                     comitee_size = 6
@@ -247,28 +265,47 @@ class Simulation:
                     
                     comitee_higher_level = random.choice(range(num_employees_higher_level_comitee), comitee_from_higher_level_size) #Choose random individuls to keep
                     for t in comitee_higher_level:  #Loop through list of kept employees
-                        comitee_employees.append(employees_higher_level_comitee[t]) #append indices to retain to list of employees at the given level
+                        comitee_employees.append(higher_level_comitee_list[t]) #append indices to retain to list of employees at the given level
                                         
                     
-                    for i in comitee_employees: #Making loop to count number of different gender at lvel 7
+                    for i in comitee_employees: #Making loop to count number of different gender
                         if i.gender == "men":
                             men_in_comitee = float(men_in_comitee + 1)
                         else:
                             women_in_comitee = float(women_in_comitee + 1)
                     
+                    #Biasing the promotion decision
+                    if manager.gender == "men": 
+                        manager_bias_F = 0.77 
+                        manager_bias_M = 1
+                        #print("male manager")
+                    else: 
+                        manager_bias_F = 0.78 
+                        manager_bias_M = 1
+                        #print("woman manager")
+
                     #Calculating bias, which affects the promoting decision
-                    bias_against_women_comitee = (bias_FF+bias_MF)/2 #bias againt women as follower #0.99
-                    bias_against_men_comitee = (bias_FM+bias_MM)/2 #bias against men as follower #1.02
+                    bias_against_women = (bias_FF+bias_MF)/2 #bias againt women as follower #0.99
+                    bias_against_men = (bias_FM+bias_MM)/2 #bias against men as follower #1.02
 
                     #Weighing the bias for FF, MM, FM, MF by gender bias at top level and percentage of gender at the level
-                    weighted_bias_FF = float(bias_against_women_comitee)*float(bias_FF)*(float(women_in_comitee)/float(comitee_size))
-                    weighted_bias_FM = float(bias_against_women_comitee)*float(bias_FM)*(float(women_in_comitee)/float(comitee_size))
-                    weighted_bias_MM = float(bias_against_men_comitee)*float(bias_MM)*(float(men_in_comitee)/float(comitee_size))
-                    weighted_bias_MF = float(bias_against_men_comitee)*float(bias_MF)*(float(men_in_comitee)/float(comitee_size))
+                    weighted_bias_FF = float(bias_against_women)*float(bias_FF)*(float(women_in_comitee)/float(comitee_size))
+                    weighted_bias_FM = float(bias_against_women)*float(bias_FM)*(float(women_in_comitee)/float(comitee_size))
+                    weighted_bias_MM = float(bias_against_men)*float(bias_MM)*(float(men_in_comitee)/float(comitee_size))
+                    weighted_bias_MF = float(bias_against_men)*float(bias_MF)*(float(men_in_comitee)/float(comitee_size))
 
                     #Calculating current bias aginst men and women as a product of weighted  
-                    current_bias_F = weighted_bias_FF + weighted_bias_MF
-                    current_bias_M = weighted_bias_FM + weighted_bias_MM
+                    current_comitee_bias_F = weighted_bias_FF + weighted_bias_MF
+                    current_comitee_bias_M = weighted_bias_FM + weighted_bias_MM
+                    
+#                    print("manager bias F", manager_bias_F, "manager bias M",manager_bias_M)
+#                    print("high level,  comitee bias F", current_comitee_bias_F)
+#                    print("high level,  comitee bias M", current_comitee_bias_M)
+#                    
+                    #Weighting the current comitee bias with the manager bias_FF
+                    current_bias_F = current_comitee_bias_F *0.8 + manager_bias_F*0.2*bias_against_women
+                    current_bias_M = current_comitee_bias_M *0.8 + manager_bias_M*0.2*bias_against_men
+                    
                     
                     #Weighing the confidence in relation to gender proportion in hiring comitee
                     weighted_conf_FF = float(conf_FF)*(float(women_in_comitee)/float(comitee_size))
