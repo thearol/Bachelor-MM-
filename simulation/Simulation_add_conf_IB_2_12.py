@@ -120,27 +120,28 @@ class Simulation:
 
                     employees_at_level_8 = self.levels_to_employees.get(level_8) #saving employees at level 7 in a list
                     
-                    #Finding manager (best performing at level)
-                    n = 0
-                    comitee_list = []
-                    for employee in employees_at_level_8:
-                        if n == 0: 
-                            manager = employee
-                            n = n + 1
+#                    #Finding manager (best performing at level)
+#                    n = 0
+#                    comitee_list = []
+#                    for employee in employees_at_level_8:
+#                        if n == 0: 
+#                            manager = employee
+#                            n = n + 1
 #                            print("first manager", manager.gender)
-                        elif employee.rating > manager.rating: 
-                            comitee_list.append(manager)
-                            manager = employee
+#                        elif employee.rating > manager.rating: 
+#                            comitee_list.append(manager)
+#                            manager = employee
 #                            print("new manager", manager.gender)
-                        else: 
-                            comitee_list.append(employee)
+#                        else: 
+#                            comitee_list.append(employee)
 #                            print("comitee list", len(comitee_list))
-
+#
 #                        print("manager rating", manager.rating)
 
                     comitee_size = 6
                     
-                    comitee = random.choice(comitee_list, comitee_size)
+                    comitee = random.choice(employees_at_level_8, comitee_size) #                    comitee = random.choice(comitee_list, comitee_size)
+
 
                     for i in comitee: #Making loop to count number of different gender at level 7
                         if i.gender == "men":
@@ -148,15 +149,15 @@ class Simulation:
                         else:
                             women_in_comitee = float(women_in_comitee + 1)
 
-                    #Biasing the promotion decision
-                    if manager.gender == "men": 
-                        manager_bias_F = 0.77 
-                        manager_bias_M = 1
-                        #print("male manager")
-                    else: 
-                        manager_bias_F = 0.78 
-                        manager_bias_M = 1
-                        #print("woman manager")
+#                    #Biasing the promotion decision
+#                    if manager.gender == "men": 
+#                        manager_bias_F = 0.77 
+#                        manager_bias_M = 1
+#                        #print("male manager")
+#                    else: 
+#                        manager_bias_F = 0.78 
+#                        manager_bias_M = 1
+#                        #print("woman manager")
                         
                     #Calculating bias, which affects the promoting decision
                     bias_against_women = (bias_FF+bias_MF)/2 #bias againt women as follower #0.99
@@ -177,8 +178,8 @@ class Simulation:
 #                    print("high level,  comitee bias M", current_comitee_bias_M)
 #                    
                     #Weighting the current comitee bias with the manager bias_FF
-                    current_bias_F = current_comitee_bias_F *0.8 + manager_bias_F*0.2*bias_against_women
-                    current_bias_M = current_comitee_bias_M *0.8 + manager_bias_M*0.2*bias_against_men
+                    current_bias_F = current_comitee_bias_F# *0.8 + manager_bias_F*0.2*bias_against_women
+                    current_bias_M = current_comitee_bias_M# *0.8 + manager_bias_M*0.2*bias_against_men
                     
 #                    print("high level,  summed bias F", current_bias_F)
 #                    print("high level,  summed bias M", current_bias_M)
@@ -233,24 +234,24 @@ class Simulation:
                     employees_higher_level_comitee = self.levels_to_employees.get(comitee_higher_level) #saving employees at level 7 in a list
                     
                     #Finding manager on the highest level(best performing at level)
-                    n = 0
-                    higher_level_comitee_list = []
-                    for emp in employees_higher_level_comitee:
-                        if n == 0: 
-                            manager = emp
-                            n = n + 1
+#                    n = 0
+#                    higher_level_comitee_list = []
+#                    for empl in employees_higher_level_comitee:
+#                        if n == 0: 
+#                            manager = empl
+#                            n = n + 1
 #                            print("first manager", manager.gender)
-                        elif emp.rating > manager.rating: 
-                            higher_level_comitee_list.append(manager)
-                            manager = emp
+#                        elif empl.rating > manager.rating: 
+#                            higher_level_comitee_list.append(manager)
+#                            manager = empl
 #                            print("new manager", manager.gender)
-                        else: 
-                            higher_level_comitee_list.append(emp)
+#                        else: 
+#                            higher_level_comitee_list.append(empl)
 #                            print("comitee list", len(comitee_list))
 
 #                        print("manager rating", manager.rating)
 
-                    num_employees_higher_level_comitee = len(higher_level_comitee_list)
+                    num_employees_higher_level_comitee = len(employees_higher_level_comitee) #                    num_employees_higher_level_comitee = len(higher_level_comitee_list)
                     num_employees_lower_level_comitee = len(employees_lower_level_comitee)
                     
                     comitee_size = 6
@@ -265,7 +266,7 @@ class Simulation:
                     
                     comitee_higher_level = random.choice(range(num_employees_higher_level_comitee), comitee_from_higher_level_size) #Choose random individuls to keep
                     for t in comitee_higher_level:  #Loop through list of kept employees
-                        comitee_employees.append(higher_level_comitee_list[t]) #append indices to retain to list of employees at the given level
+                        comitee_employees.append(employees_higher_level_comitee[t]) # comitee_employees.append(higher_level_comitee_list[t]) 
                                         
                     
                     for i in comitee_employees: #Making loop to count number of different gender
@@ -274,15 +275,15 @@ class Simulation:
                         else:
                             women_in_comitee = float(women_in_comitee + 1)
                     
-                    #Biasing the promotion decision
-                    if manager.gender == "men": 
-                        manager_bias_F = 0.77 
-                        manager_bias_M = 1
-                        #print("male manager")
-                    else: 
-                        manager_bias_F = 0.78 
-                        manager_bias_M = 1
-                        #print("woman manager")
+#                    #Biasing the promotion decision
+#                    if manager.gender == "men": 
+#                        manager_bias_F = 0.77 
+#                        manager_bias_M = 1
+#                        #print("male manager")
+#                    else: 
+#                        manager_bias_F = 0.78 
+#                        manager_bias_M = 1
+#                        #print("woman manager")
 
                     #Calculating bias, which affects the promoting decision
                     bias_against_women = (bias_FF+bias_MF)/2 #bias againt women as follower #0.99
@@ -303,8 +304,8 @@ class Simulation:
 #                    print("high level,  comitee bias M", current_comitee_bias_M)
 #                    
                     #Weighting the current comitee bias with the manager bias_FF
-                    current_bias_F = current_comitee_bias_F *0.8 + manager_bias_F*0.2*bias_against_women
-                    current_bias_M = current_comitee_bias_M *0.8 + manager_bias_M*0.2*bias_against_men
+                    current_bias_F = current_comitee_bias_F #*0.8 + manager_bias_F*0.2*bias_against_women
+                    current_bias_M = current_comitee_bias_M #*0.8 + manager_bias_M*0.2*bias_against_men
                     
                     
                     #Weighing the confidence in relation to gender proportion in hiring comitee
@@ -394,7 +395,7 @@ class Control:
         self.promotion_bias_FM = int(promotion_bias_FM)
         self.promotion_bias_MM = int(promotion_bias_MM)
         self.promotion_bias_MF = int(promotion_bias_MF)
-        self.num_simulations = 100 #defining number of simulations, usually set to 1000
+        self.num_simulations = 500 #defining number of simulations, usually set to 1000
         self.attrition = 15 #15% turnover rate is applied
         self.iterations_per_simulation = 1 #20 performance-review cycles are generated 
         self.num_positions_at_level = [500, 350, 200, 150, 100, 75, 40, 10] #define hierarchy
