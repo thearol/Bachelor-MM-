@@ -28,52 +28,11 @@ data_db_long <- read.csv("decision_bias/long_data_db.csv")
 
 #IMPLICIT BIAS
 
-```{r implicit model, condition}
+##Difference between gender and condition, interaction
+```{r model, condition * gender}
+
 #Tranforming condition to a factor
 data_ib$condition <- as.factor(data_ib$condition)
-
-#to figure out which prior we need to make
-get_prior(rt_log ~ condition + (condition|ID), data = data_ib)
-
-#Defining a prior 
-prior_ib1 = c(prior(normal(-0.4, 0.2), class = "Intercept"), 
-          prior(normal(0, 0.2), class = "b"), 
-          prior(normal(0, 0.2), class = "sigma"),
-          prior(normal(0, 0.1), class = "sd"))
-
-#Implicit model
-model_ib1_prior <- brm(rt_log ~ condition + (condition|ID),
-                    data = data_ib,
-                    family = gaussian(),
-                    prior = prior_ib1,
-                    sample_prior = "only",
-                    cores = 2,
-                    chains = 2)
-
-pp_check(model_ib1_prior, nsamples = 100) #Doing a predictive prior check to test priors
-
-model_ib1 <- brm(rt_log ~ condition + (condition|ID),
-                    data = data_ib,
-                    family = gaussian(),
-                    prior = prior_ib1,
-                    sample_prior = TRUE,
-                    iter = 5000,
-                    warmup = 2000,
-                    cores = 4,
-                    chains = 4)
-
-summary(model_ib1)
-
-#plotting
-plot(model_ib1)
-
-marginal_effects(model_ib1)
-```
-
-
-
-##Difference between gender and condition, interaction
-```{r model, condition + gender}
 #to figure out which prior I need to make 
 get_prior(rt ~  condition*gender + (condition|ID), data = data_ib)
 
@@ -89,6 +48,7 @@ model_ib2_prior <- brm(rt_log ~ condition*gender + (condition|ID),
                     family = gaussian(),
                     prior = prior_ib2,
                     sample_prior = "only",
+                    seed = 123,
                     cores = 2,
                     chains = 2)
 
@@ -100,6 +60,7 @@ model_ib2 <- brm(rt_log ~ condition*gender + (condition|ID),
                     family = gaussian(),
                     prior = prior_ib2,
                     sample_prior = TRUE,
+                    seed = 123,
                     iter = 5000,
                     warmup = 2000,
                     cores = 4,
@@ -116,17 +77,6 @@ plot(model_ib2)
 
 
 
-##Implicit bias, Comparing models
-```{r waic, implicit}
-waic(model_ib1, model_ib2)
-
-waic1 <- waic(model_ib1)
-waic2 <- waic(model_ib2)
-
-loo_compare(waic1, waic2)
-```
-
-
 ##Implicit bias, hypothesis testing
 ```{r}
 hypothesis(model_ib2, "(Intercept + genderMale)/2 > ((Intercept + condition1)+(Intercept + condition1+genderMale+condition1:genderMale)/2)")
@@ -137,47 +87,8 @@ hypothesis(model_ib2, "condition1 > condition1 + condition1:genderMale")
 
 ##Plotting, implicit bias
 
-###H2.1
-```{r prepare predictions}
-nd_ib1 <- expand.grid(tibble(
-         ID = NA, 
-         condition=factor(0:1) %>% 
-           rep(., times = 10)))
 
-pred_ib1 <-
-  predict(model_ib1, newdata = nd_ib1) %>%  # we can use the same nd data from last time
-  as_tibble() %>%
-  bind_cols(nd_ib1)
-
-pred_ib1$Estimate <- exp(pred_ib1$Estimate)
-pred_ib1_mean <- pred_ib1 %>% group_by(condition) %>% summarise(mean_prediction = mean(Estimate))
-
-pred_ib1$condition <- ifelse(pred_ib1$condition == 0, "Congruent", "Incongruent")
-
-
-data_ib_for_plot <- data_ib
-data_ib_for_plot$condition <- ifelse(data_ib_for_plot$condition == 0, "Congruent", "Incongruent")
-pred_ib1_mean$condition <- ifelse(pred_ib1_mean$condition == 0, "Congruent", "Incongruent")
-
-
-```
-
-
-```{r H2.1 plot}
-#create the plot
-H2.1.1 <- ggplot(data_ib_for_plot, aes(x = condition, y = rt)) +
-  labs(x = "Condition", y = "Reaction time (seconds)", title = "Hypothesis 2.1") +
-  geom_violin(aes(x = condition, Estimate, fill = condition) , data = pred_ib1, width = 0.5, alpha = 0.4) + 
-  theme(legend.position = "none", panel.grid.minor = element_blank()) + 
-  geom_point(aes(x = condition, y = mean_prediction), data = pred_ib1_mean, size = 2) + 
-  scale_fill_manual(values=c("orange", "blue")) +
-  theme(plot.title = element_text(hjust = 0.5))
-H2.1.1
-
-
-```
-
-###H2.2
+###H2.1 and H2.2
 ```{r prepare predictions}
 nd_ib2 <- expand.grid(tibble(
          gender=factor(0:1) %>% 
@@ -193,7 +104,7 @@ pred_ib2 <-
   as_tibble() %>%
   bind_cols(nd_ib2)
 
-pred_ib2$Estimate_prop <- exp(pred_ib2$Estimate)
+pred_ib2$Estimate_sec <- exp(pred_ib2$Estimate)
 
 pred_ib2$dif <- NA
 pred_ib2$dif[pred_ib2$gender == "Male"] <- pred_ib2$Estimate[pred_ib2$condition == 1 & pred_ib2$gender == "Male"] - pred_ib2$Estimate[pred_ib2$condition == 0 & pred_ib2$gender == "Male"]
@@ -222,6 +133,24 @@ H2.2.1 <- ggplot(pred_ib2, aes(x = gender, y = dif, fill = gender)) +
 H2.2.1
 
 
+pred_ib2$gender <- as.factor(pred_ib2$gender)
+
+H_ib_interaction <- ggplot(pred_ib2, aes(x = condition, y = Estimate_sec, fill = gender)) + 
+  geom_violin(aes(x = condition, y = Estimate_sec), data = pred_ib2, width = 0.7, alpha = 0.6) + 
+  theme(panel.grid.minor = element_blank()) + 
+  labs(x = "Condition", y = "Reaction time (seconds)", title = "Hypothesis 2.1 and 2.2") + 
+  stat_summary(fun.data=mean_sdl, geom="pointrange", color="black", position = position_dodge(width = 0.7), alpha = 0.8) +
+  labs(fill = "Gender") + 
+  scale_fill_manual(values=c("orange", "blue")) +
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  scale_y_continuous(labels=scales::number_format(accuracy = 0.01, decimal.mark = '.')) + 
+  theme(text = element_text(size=15))
+  
+ 
+
+H_ib_interaction
+
+
 ```
 
 
@@ -235,30 +164,6 @@ H2.2.1_lines <- ggplot(pred_ib2, aes(x = condition, y = Estimate, group = gender
   labs(x = "Condition", y = "Reaction time (seconds)", title = "Hypothesis 2.2") + 
   theme(plot.title = element_text(hjust = 0.5))
 H2.2.1_lines
-
-
-H2.2.1_lines <- ggplot(pred_ib2, aes(x = condition, y = Estimate_sec, fill = gender)) + 
-  scale_color_manual(values=c("orange", "blue"), name = "Gender") + 
-  stat_summary(fun.data = "mean_cl_boot", color = "black", size = 1.5, geom = "point") + 
-  stat_summary(fun.y = mean, geom="line") + 
-  labs(x = "Condition", y = "Reaction time (seconds)", title = "Hypothesis 2.2") + 
-  theme(plot.title = element_text(hjust = 0.5)) + 
-  geom_violin(aes(x = condition, y = Estimate_sec), data = pred_ib2, width = 0.7, alpha = 0.6) 
-
-H2.2.1_lines
-
-
-
-
-H3 <- ggplot(pred_db3, aes(x = Gender, y = Estimate, fill = Partner_gender)) + 
-  geom_violin(aes(x = Gender, y = Estimate), data = pred_db3, width = 0.7, alpha = 0.6) + 
-  scale_y_continuous(breaks = sort(c(seq(min(pred_db3$Estimate), max(pred_db3$Estimate), length.out=6), 0.5))) + 
-  theme(panel.grid.minor = element_blank()) + 
-  labs(x = "Gender", y = "Mean expressed confidence", title = "Hypothesis 1.5.1 and 1.5.2") + 
-  stat_summary(fun.data=mean_sdl, geom="pointrange", color="black", position = position_dodge(width = 0.7), alpha = 0.8) +
-  labs(fill = "Partner gender") + 
-  scale_fill_manual(values=c("orange", "blue")) + 
-  theme(plot.title = element_text(hjust = 0.5))
 
 ```
 
