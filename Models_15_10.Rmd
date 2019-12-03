@@ -8,7 +8,7 @@ output: html_document
 #Getting packages
 ```{r loading packages, include = FALSE}
 library(pacman)
-p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel, utils, boot, Hmisc)
+p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel, utils, boot, Hmisc, scales)
 ```
 
 #Setting directory
@@ -22,6 +22,7 @@ data_ib <- read.csv("implicit_bias/data_ib.csv")[,2:12]
 data_eb <- read.csv("explicit_bias/eb_results.csv")[, 2:6]
 data_db <- read.csv("decision_bias/disagree_sensitivity_db_long.csv")[, 2:44]
 data_db_all <- read.csv("decision_bias/data_db_all.csv")
+data_db_long <- read.csv("decision_bias/long_data_db.csv")
 ```
 
 
@@ -148,7 +149,7 @@ pred_ib1 <-
   as_tibble() %>%
   bind_cols(nd_ib1)
 
-pred_ib1$Estimate <- inv.logit(pred_ib1$Estimate)
+pred_ib1$Estimate <- exp(pred_ib1$Estimate)
 pred_ib1_mean <- pred_ib1 %>% group_by(condition) %>% summarise(mean_prediction = mean(Estimate))
 
 pred_ib1$condition <- ifelse(pred_ib1$condition == 0, "Congruent", "Incongruent")
@@ -192,7 +193,7 @@ pred_ib2 <-
   as_tibble() %>%
   bind_cols(nd_ib2)
 
-pred_ib2$Estimate_prop <- inv.logit(pred_ib1$Estimate)
+pred_ib2$Estimate_prop <- exp(pred_ib2$Estimate)
 
 pred_ib2$dif <- NA
 pred_ib2$dif[pred_ib2$gender == "Male"] <- pred_ib2$Estimate[pred_ib2$condition == 1 & pred_ib2$gender == "Male"] - pred_ib2$Estimate[pred_ib2$condition == 0 & pred_ib2$gender == "Male"]
@@ -202,8 +203,6 @@ pred_ib2$dif[pred_ib2$gender == "Female"] <- pred_ib2$Estimate[pred_ib2$conditio
 pred_ib2_mean <- pred_ib2 %>% group_by(condition, gender) %>% summarise(mean_prediction = mean(Estimate))
 
 pred_ib2$condition <- ifelse(pred_ib2$condition == 0, "Congruent", "Incongruent")
-
-pred_ib2$Estimate_sec <- inv.logit(pred_ib2$Estimate)
 
 
 ```
@@ -229,7 +228,7 @@ H2.2.1
 ```{r}
 
 #plot with lines 
-H2.2.1_lines <- ggplot(pred_ib2, aes(x = condition, y = Estimate_sec, group = gender, color = gender)) + 
+H2.2.1_lines <- ggplot(pred_ib2, aes(x = condition, y = Estimate, group = gender, color = gender)) + 
   scale_color_manual(values=c("orange", "blue"), name = "Gender") + 
   stat_summary(fun.data = "mean_cl_boot", color = "black", size = 1.5, geom = "point") + 
   stat_summary(fun.y = mean, geom="line") + 
@@ -698,6 +697,74 @@ H3.3.3$labels$colour <- "Gender"
 H3.3.3
 ```
 
+#Extracting the EB to the simulation
+
+  For the explicit task: The sexism score we have range on a scale from 0 to 6. 0 indicating no sexist behaviour, 6 highly sexist behaviour. As most questions ask about women in relation to men, we have thought of setting the 0 as the bias towards men and the hostile, benevolent or combined score as the bias towards women. But this might be very constructed as there is no possibility of disfavoring men.
+   Do you have an idea of how to extract biases from this measure?
+
+In abstract, somebody w 0 would have the same "bias" for men and women (1, and 1, let's say), right? So no, there is no way to model a bias against men. That's a limit of the measure, to be discussed. On the other hand, if these measures correlate with other biases (e.g. implicit and db), you can say it's capturing something (and we have good prior info about sexism being disproportionally against women).
+How to define the simulation bias from this? Let's define a pavement bias: 0? 0.5? You then rescale the scores so that 6 is the lowest value and 0 is 1.
+
+```{r}
+#Defining 0.5 as the baseline based on the theory, which states that pariticpants rarely use extreme values in scales. Thus, if you answer the question in the direction of non-sexist using either the most extreme or the second most extreme possibility, you roughly get a score around 0.5. 
+
+data_eb_r = data_eb
+
+#Subtracting the pavement bias of 0.5
+data_eb_r$overall_score <- data_eb_r$overall_score - 1
+data_eb_r$benevolent_score <- data_eb_r$benevolent_score - 1
+data_eb_r$hostile_score<- data_eb_r$hostile_score -1
+
+#Reverting the scores, making a score of 5 a score of 0 and visa versa
+data_eb_r$overall_score <- 5 - data_eb_r$overall_score
+data_eb_r$benevolent_score <- 5 - data_eb_r$benevolent_score
+data_eb_r$hostile_score <- 5 - data_eb_r$hostile_score
+
+
+
+#scaling to values to a scale ranging from 0-1
+data_eb_r$overall_score <- rescale(data_eb_r$overall_score, to = c(0, 1), from = range(0,5))
+data_eb_r$benevolent_score <- rescale(data_eb_r$benevolent_score, to = c(0, 1), from = range(0,5))
+data_eb_r$hostile_score <- rescale(data_eb_r$hostile_score, to = c(0, 1), from = range(0,5))
+
+
+#Rerunning the model to get new estimates
+
+#Defining a prior, mean set to 0.5 because best conceptual meaning
+prior_eb1_scaled = c(prior(normal(0.75, 0.1), class = "Intercept"), 
+          prior(normal(0, 0.1), class = "b"), 
+          prior(normal(0, 0.1), class = "sigma"),
+          prior(normal(0, 0.05), class = "sd"))
+
+#explicit model
+model_eb1_scaled <- brm(overall_score ~ gender + (1|ID),
+                    data = data_eb_r,
+                    family = gaussian(),
+                    prior = prior_eb1_scaled,
+                    sample_prior = "only",
+                    cores = 2,
+                    chains = 2)
+
+#prior check 
+pp_check(model_eb1_scaled, nsamples = 100) #Doing a predictive prior check to test priors
+
+#models
+model_eb1_scaled <- brm(overall_score ~ gender + (1|ID),
+                    data = data_eb_r,
+                    family = gaussian(),
+                    prior = prior_eb1_scaled,
+                    sample_prior = TRUE,
+                    iter = 8000,
+                    warmup = 4000,
+                    cores = 4,
+                    chains = 6, 
+                    control = list(adapt_delta = 0.999))
+
+
+```
+
+
+
 #DECISION BIAS
 Below are models: Firstly, the reconstructon of the model and the results from last year. Secondly, new combinations of the variables with the goal of finding the best model. 
 
@@ -759,7 +826,7 @@ model_db2_prior <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_roll_c*Leader_
 pp_check(model_db2_prior, nsamples = 100)
 
 
-model_db2 <- brm(leader_behavior ~ 1 + Follower_gender + conf_dif_c*skill_dif_roll_c*Leader_gender:Follower_gender + (1 + Follower_gender + skill_dif_roll_c:Follower_gender | SubjectID),
+model_db2 <- brm(leader_behavior ~ 0 + conf_dif_c*skill_dif_roll_c*Leader_gender:Follower_gender + (0 + skill_dif_roll_c:Follower_gender | SubjectID),
   data = data_db,
   prior = prior_db2,
   sample_prior=T,
@@ -916,6 +983,7 @@ model_db5 <- brm(Response_abs ~ Gender*Partner_gender + (1 | SubjectID),
 ) 
 marginal_effects(model_db5)
 
+
 summary(model_db5)
 
 ```
@@ -1029,7 +1097,7 @@ H1: there is a leader effect: male leaders tend to surrender less than female le
 ```{r H1: there is a leader effect: male leaders tend to surrender less than female leaders}
 #H1: In general male leader tend to surrender less than female leaders
 
-hypothesis(model_db2, "(Leader_genderMale:Follower_genderMale + Leader_genderMale:Follower_genderFemale)/2 < (Leader_genderFemale:Follower_genderMale + Leader_genderFemale:Follower_genderMale)/2")
+hypothesis(model_db1, "(Leader_genderMale:Follower_genderMale + Leader_genderMale:Follower_genderFemale)/2 < (Leader_genderFemale:Follower_genderMale + Leader_genderFemale:Follower_genderMale)/2")
 
 ```
 
@@ -1037,7 +1105,7 @@ H2: there is a follower effect: leaders tend to surrender more to men than to wo
 ```{r H2: there is a follower effect: leaders tend to surrender more to men than to women }
 
 # H2: There is a follower effect: leaders tend to surrender more to men than to women
-hypothesis(model_db2, "(Leader_genderMale:Follower_genderMale + Leader_genderFemale:Follower_genderMale)/2 > (Leader_genderMale:Follower_genderFemale + Leader_genderFemale:Follower_genderFemale)/2")
+hypothesis(model_db1, "(Leader_genderMale:Follower_genderMale + Leader_genderFemale:Follower_genderMale)/2 > (Leader_genderMale:Follower_genderFemale + Leader_genderFemale:Follower_genderFemale)/2")
 
 
 ```
@@ -1045,7 +1113,7 @@ hypothesis(model_db2, "(Leader_genderMale:Follower_genderMale + Leader_genderFem
 H3: There is an interaction: Females are more discriminative as to their followers gender than males are
 ```{r H3: there is an interaction, females are more discriminative as to their followers gender than males are }
 
-hypothesis(model_db2, "(Leader_genderMale:Follower_genderMale - Leader_genderMale:Follower_genderFemale) < (Leader_genderFemale:Follower_genderMale - Leader_genderFemale:Follower_genderFemale)")
+hypothesis(model_db1, "(Leader_genderMale:Follower_genderMale - Leader_genderMale:Follower_genderFemale) < (Leader_genderFemale:Follower_genderMale - Leader_genderFemale:Follower_genderFemale)")
 
 
 ```
@@ -1071,7 +1139,7 @@ hypothesis(model_db2, "(Leader_genderMale:Follower_genderMale + Leader_genderFem
 
 #H3: There is an interaction: males are more discriminative as to their followers gender than females are
 
-hypothesis(model_db2, "(Leader_genderMale:Follower_genderMale - Leader_genderMale:Follower_genderFemale) > (Leader_genderFemale:Follower_genderMale - Leader_genderFemale:Follower_genderFemale)")
+hypothesis(model_db2, "(Leader_genderMale:Follower_genderMale - Leader_genderMale:Follower_genderFemale) < (Leader_genderFemale:Follower_genderMale - Leader_genderFemale:Follower_genderFemale)")
 
 ```
 
@@ -1087,11 +1155,10 @@ Leader behavior ~ 0 + Leader gender:Follower gender + (0 + skill difference : Fo
 
 ```{r}
 nd_db1 <- expand.grid(tibble(
-         Follower_gender=factor(0:1) %>% rep(., times = 10),
-         Leader_gender = factor(0:1) %>% rep(., times = 10),
+         Follower_gender=factor(0:1) %>% rep(., times = 6),
+         Leader_gender = factor(0:1) %>% rep(., times = 6),
+         skill_dif_roll_c = 0,
          SubjectID = NA))
-
-
 
 nd_db1$Follower_gender <- ifelse(nd_db1$Follower_gender == 0, "Male", "Female")
 
@@ -1099,7 +1166,7 @@ nd_db1$Leader_gender <- ifelse(nd_db1$Leader_gender == 0, "Male", "Female")
 
 
 pred_db1 <-
-  predict(model_db1, newdata = nd_db1, re_formula = ~ (0 + skill_dif_roll_c:Follower_gender | SubjectID)) %>%
+  predict(model_db1, newdata = nd_db1) %>%
   as_tibble() %>%
   bind_cols(nd_db1)
 
@@ -1155,7 +1222,9 @@ H1.1.3 <- ggplot(pred_db1, aes(x = Leader_gender, y = Estimate, fill = Follower_
   stat_summary(fun.data=mean_sdl, geom="pointrange", color="black", position = position_dodge(width = 0.7), alpha = 0.8) +
   labs(fill = "Follower gender") + 
   scale_fill_manual(values=c("orange", "blue")) +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) + 
+    scale_y_continuous(labels = percent_format(accuracy = 2))
+
 
 H1.1.3
 
@@ -1185,7 +1254,7 @@ nd_db2.1$Leader_gender <- ifelse(nd_db2.1$Leader_gender == 0, "Male", "Female")
 
 
 pred_db2.1 <-
-  predict(model_db2, newdata = nd_db2.1, re_formula = ~ (1 + Follower_gender + skill_dif_roll_c:Follower_gender | SubjectID)) %>%
+  predict(model_db2, newdata = nd_db2.1) %>%
   as_tibble() %>%
   bind_cols(nd_db2.1)
 ```
@@ -1229,7 +1298,6 @@ H2.1.3 <- ggplot(pred_db2.1, aes(x = Leader_gender, y = Estimate, fill = Followe
   scale_fill_manual(values=c("orange", "blue")) +
   theme(plot.title = element_text(hjust = 0.5))
 
-
 H2.1.3
 ```
 
@@ -1251,7 +1319,7 @@ nd_db2$Leader_gender <- ifelse(nd_db2$Leader_gender == 0, "Male", "Female")
 
 
 pred_db2 <-
-  predict(model_db2, newdata = nd_db2, re_formula = ~ (1 + Follower_gender + skill_dif_roll_c:Follower_gender | SubjectID)) %>%
+  predict(model_db2, newdata = nd_db2) %>%
   as_tibble() %>%
   bind_cols(nd_db2)
 
@@ -1313,7 +1381,7 @@ nd_db2.2$Leader_gender <- ifelse(nd_db2.2$Leader_gender == 0, "Male", "Female")
 
 
 pred_db2.2 <-
-  predict(model_db2, newdata = nd_db2.2, re_formula = ~ (1 + Follower_gender + skill_dif_roll_c:Follower_gender | SubjectID)) %>%
+  predict(model_db2, newdata = nd_db2.2) %>%
   as_tibble() %>%
   bind_cols(nd_db2.2)
 
@@ -1368,7 +1436,7 @@ nd_db3$Partner_gender <- ifelse(nd_db3$Partner_gender == 0, "Male", "Female")
 
 
 pred_db3 <-
-  predict(model_db5, newdata = nd_db3, re_formula = ~ (1 | SubjectID)) %>%
+  predict(model_db5, newdata = nd_db3) %>%
   as_tibble() %>%
   bind_cols(nd_db3)
 ```
@@ -1408,7 +1476,7 @@ nd_db1$Leader_gender <- ifelse(nd_db1$Leader_gender == 0, "Male", "Female")
 
 
 pred_db1 <-
-  predict(model_db1, newdata = nd_db1, re_formula = ~ (0 + skill_dif_roll_c:Follower_gender | SubjectID)) %>%
+  predict(model_db1, newdata = nd_db1) %>%
   as_tibble() %>%
   bind_cols(nd_db1)
 
@@ -1567,6 +1635,51 @@ H3.2 <- ggplot(pred, aes(x = Leader_gender, y = Estimate, fill = Follower_gender
   scale_fill_manual(values=c("palegreen3", "gold2"))
 ```
  
+ 
+##Model looking at confidence in relation to skill
+
+```{r}
+
+#create response abs
+data_db_long$Response_abs <- abs(data_db_long$Response)
+
+#remove the first 10 trials
+
+data_db_long <- data_db_long[11:12352,]
+
+#Defining priors 
+prior_db_conf_skill <- c( 
+  prior(normal(0,0.1),class="Intercept"),
+  prior(normal(0,.2),class="b"),
+  prior(normal(0,.1),class="sd")
+)
+
+#prior predictive check
+model_db_conf_skill_prior <- brm(Sensitivity_roll ~ 1 + Response_abs * Gender + (1 | SubjectID), 
+                       prior = prior_db_conf_skill, 
+                       data = data_db_long, 
+                       sample_prior = "only",
+                       iter = 4000, 
+                       family = "gaussian", 
+                       chains = 2, 
+                       cores = 2)
+
+pp_check(model_db_conf_skill_prior, nsamples = 100)
+
+
+model_db_conf_skill <- brm(Sensitivity_roll ~ 1 + Response_abs * Gender + (1 | SubjectID),
+  data = data_db_long,
+  prior = prior_db_conf_skill,
+  sample_prior=T,
+  family = "gaussian", #As we had a binary outcome, we set this to "bernoulli"
+  seed = 123, # Adding a seed makes results reproducible.
+  chains=4,
+  cores=4,
+  control = list(adapt_delta = 0.9) 
+) 
+
+```
+
 
 #GENDER BIAS
 
