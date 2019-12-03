@@ -68,6 +68,8 @@ eb_data$QuestionAnswer[eb_reverse$QuestionNumber %in% q_reversed & eb_reverse$Qu
 
 #Hostile Sexism Score
 ```{r}
+detach(package:plyr)
+
 #Hostile sexism score questions
 hostile_questions = c(2, 4, 5, 7, 10, 11, 14, 15, 16, 18, 21)
 
@@ -102,6 +104,6 @@ eb_results$gender <- eb_results$ID %% 2
 eb_results$gender <-ifelse(eb_results$gender == 0, "Female", "Male")
 
 #Creating csv-file
-write.csv(eb_results, file = "explicit_bias/eb_results.csv")
+write.csv(eb_results ,file = "eb_results.csv")
 ```
 
