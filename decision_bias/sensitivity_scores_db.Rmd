@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r loading packages and data}
 library(pacman)
-p_load(plotly, jpeg, tm, brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, stringr, here, data.table, mousetrap)
+p_load(plotly, jpeg, tm, brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, stringr, here, data.table, mousetrap, base)
 
 #setting working directory
 setwd("~/Bachelor-MM-/decision_bias")
@@ -94,6 +94,7 @@ prior_check_sensitivity <- brm(response_dummy ~ diff + (diff|SubjectID_unique),
                                iter = 4000, 
                                family = "bernoulli",
                                cores=2,
+                               seed = 123,
                                chains=2)
 
 pp_check(prior_check_sensitivity,nsamples = 100)
@@ -116,39 +117,7 @@ m_sensitivity <- brm(
 
 marginal_effects(m_sensitivity)
 
-
-```
-
-
-#Spaghetti plot of all participants
-```{r}
-
-#setting working directory
-setwd("~/Bachelor-MM-/decision_bias")
-
-data <- read.csv("sensitivity_scores.csv", header = T, stringsAsFactors = F)
-
-p <- ggplot(data = data.frame(x = c(-9, 9)),aes(x))
-
-string <- "p"
-
-for (row in 1:128) {
-  intercept <- data[row,4]
-  slope <- data[row,5]
-  genderNumber <- as.numeric(str_extract(data[row,2], "\\d+"))
-  genderColor <- ifelse(genderNumber %% 2 == 0, "orange", "cornflowerblue")
-  
-  string <- paste(string, " + stat_function(colour = '",genderColor,"', alpha = 0.4, fun = function(x) 1 / (1 + exp(-",slope,"*(x-",intercept,"))), n = 100)", sep="")
-}
-
-plotti <- eval(parse(text = string))
-
-plotti + xlab ("Difficulty") + ylab("Propensity to answer 'right image'") + labs(title = "Individual sensitivity slopes") + theme(plot.title = element_text(hjust = 0.5))
-
-
-#zoom for inspection
-#plotti + coord_cartesian(xlim=c(-2,2), ylim = c(0.35,0.65)) #
-
+plot(m_sensitivity)
 ```
 
 
@@ -184,6 +153,42 @@ sensitivity_scores$SubjectID_unique <- as.character(sensitivity_scores$Row.Names
 sensitivity_scores <- sensitivity_scores[,2:4]
 
 ```
+
+
+
+
+#Spaghetti plot of all participants
+```{r}
+
+#setting working directory
+setwd("~/Bachelor-MM-/decision_bias")
+
+data <- read.csv("sensitivity_scores.csv", header = T, stringsAsFactors = F)
+
+p <- ggplot(data = data.frame(x = c(-9, 9)),aes(x))
+
+string <- "p"
+
+for (row in 1:128) {
+  intercept <- data[row,4]
+  slope <- data[row,5]
+  genderNumber <- as.numeric(str_extract(data[row,2], "\\d+"))
+  genderColor <- ifelse(genderNumber %% 2 == 0, "orange", "cornflowerblue")
+  
+  string <- paste(string, " + stat_function(colour = '",genderColor,"', alpha = 0.4, fun = function(x) 1 / (1 + exp(-",slope,"*(x-",intercept,"))), n = 100)", sep="")
+}
+
+plotti <- eval(parse(text = string))
+
+plotti + xlab ("Difficulty") + ylab("Propensity to answer 'right image'") + labs(title = "Individual sensitivity slopes") + theme(plot.title = element_text(hjust = 0.5))
+
+
+#zoom for inspection
+#plotti + coord_cartesian(xlim=c(-2,2), ylim = c(0.35,0.65)) #
+
+```
+
+
 
 
 ```{r merge sensitivity scores with long_data_db, eval = FALSE}
@@ -294,6 +299,8 @@ for (i in 1:96){ #Loop through number of trials
 
 ```
 
+
+
 ```{r write and read csv}
   
 write.csv(sensitivity_scores_roll, file = "sensitivity_scores_rolling.csv")
@@ -307,11 +314,12 @@ sensitivity_scores_roll <- read.csv("sensitivity_scores_rolling.csv")[,2:89]
 #Creating a trial variable
 n = 1
 p = NULL
+data_j = NULL
  for (p in unique(long_data_db$SubjectID_unique)){
    if (n == 1) {
      data_j <- filter(long_data_db, long_data_db$SubjectID_unique == p)
      data_j <- cbind(data_j, as.data.frame(1:sum(complete.cases(data_j$SubjectID))))
-     colnames(data_j)[26] <- "Trial"
+     colnames(data_j)[27] <- "Trial"
      n = n + 1
      } else {
      data_j <- rbind(data_j,mutate(filter(long_data_db, long_data_db$SubjectID_unique == p), Trial = 1:sum(complete.cases(filter(long_data_db, long_data_db$SubjectID_unique == p)$SubjectID))))
@@ -346,78 +354,12 @@ marginal_effects(m_sensitivity)
 ```
 
 
-```{r}
-p <- qplot(Intercept, Slope, data = sensitivity_scores)
-
-# Fixed slopes and intercepts
-p + geom_abline()
-
-
-p <- ggplot(sensitivity_scores, aes(x = wt, y=mpg), . ~ cyl) + geom_point()
-p + geom_abline(data=sensitivity_scores, aes(intercept=Intercept, slope=Slope))
-
-p <- ggplot(mtcars, aes(x = wt, y=mpg), . ~ cyl) + geom_point()
-df <- data.frame(a=rnorm(10, 25), b=rnorm(10, 0))
-p + geom_abline(aes(intercept=a, slope=b), data=df)
-
-p + stat_function(fun = function(Slope) exp(Slope)/(1+exp(Slope)), n = 100) 
-```
-
-
-
-
-```{r plots that did not work, eval = FALSE, include = FALSE}
-
-
-spaghetti(m_sensitivity, xvar = "diff", spage)
-
-marginal_effects(m_sensitivity, spaghetti = TRUE, nsamples = 100)
-
-out_f <- marginal_effects(
-  m_sensitivity,
-  "diff"
-  )[[1]]
-
-out_r <- marginal_effects(
-  m_sensitivity,
-  "diff", 
-  conditions = distinct(long_data_db, SubjectID_unique),
-  re_formula = NULL
-  )[[1]]
-
-
-out_r %>% 
-  ggplot(aes(diff, response_dummy)) +
-  geom_ribbon(
-    data = out_f,
-    aes(ymin = lower__, ymax = upper__),
-    alpha = .33
-  ) +
-  geom_line(data = out_f, size = 0.01) +
-  geom_line(aes(group = SubjectID_unique))
-
-
-forest(m_sensitivity)
-
-ranef(m_sensitivity)
-
-marginal_effects(ranef(m_sensitivity))
-
-sjp.lmer(m_sensitivity, vars = "c12hour", type = "ri.slope")
-
-
- 
-```
-
-
-#Making wide format with results from the sensitivity model
 ```{r create dataframe that only contains the columns which we would like to merge into wide format}
 
 #Make dataframe with intercept, slope, side, and unique subject
 sensitivity_scores <- distinct(long_data_db, SubjectID_unique, Side, Intercept, Slope, Sensitivity_roll, Trial)
 
 ```
-
 
 
 
