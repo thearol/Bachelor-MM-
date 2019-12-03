@@ -67,6 +67,11 @@ data_ib <- filter(data_ib, trial != c(1, 2))
 #Creating cut-offs
 data_ib$rt[data_ib$rt > 3] <- NA
 data_ib$rt[data_ib$rt < 0.3] <- NA
+
+#how many trials are removed?
+table(data_ib$rt > 3)
+table(data_ib$rt < 0.3)
+
 ```
 
 #Log-transforming RT-data
