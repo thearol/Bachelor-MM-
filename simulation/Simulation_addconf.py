@@ -64,8 +64,8 @@ class Simulation:
         next_gender = random.choice(gender)
         level = 0 #start at level 0
         k = 1
-        CV_bias_F = 0.30
-        CV_bias_M = 0.70
+        CV_bias_F = 0.5
+        CV_bias_M = 0.5
         for positions in self.num_positions_at_level: #iterate over number of positions at the current level, e.g. [20,16,12,8,4] 
             employee_list_at_level = self.levels_to_employees.get(level) #start at level 0, will then build up to level 8
             append = employee_list_at_level.append #append to employee list 

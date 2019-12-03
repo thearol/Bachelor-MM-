@@ -1,0 +1,330 @@
+---
+title: "simulation"
+author: "Thea Rolskov Sloth"
+date: "14/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+setwd("~/Bachelor-MM-/simulation")
+
+library(pacman)
+p_load(qdapTools, stringr, ggplot2, plyr, scales)
+```
+
+
+```{r}
+sim_path = ("~/Bachelor-MM-/simulation/test_data/")
+
+#Loading the files and cleaning them 
+sim_files <- list.files(path = sim_path)
+
+sim_data <- as.data.frame(matrix(ncol = 16, nrow = 0))
+
+for (i in sim_files) {
+  s <- read.csv(paste("test_data/",i, sep = ""), stringsAsFactors = F)
+  s$Results <- strsplit(s$Results, ",")
+  
+  ss <- list2df(s$Results, col1 = "X1", col2 = "X2")
+  ss <- subset(ss, select = -c(X2))
+  ss <- t(ss)
+  
+  ss <- gsub("\\[|\\]", "", ss)
+  
+  ss <- data.frame(ss, stringsAsFactors = F)
+  names(ss) <- c("male_level1", "male_level2", "male_level3", "male_level4", "male_level5", "male_level6", "male_level7", "male_level8","female_level1", "female_level2", "female_level3", "female_level4", "female_level5", "female_level6", "female_level7", "female_level8")
+  
+  ss$male_level8 <- round(as.numeric(ss$male_level8), digits = 2)
+  ss$male_level7 <- round(as.numeric(ss$male_level7), digits = 2)
+  ss$male_level6 <- round(as.numeric(ss$male_level6), digits = 2)
+  ss$male_level5 <- round(as.numeric(ss$male_level5), digits = 2)
+  ss$male_level4 <- round(as.numeric(ss$male_level4), digits = 2)
+  ss$male_level3 <- round(as.numeric(ss$male_level3), digits = 2)
+  ss$male_level2 <- round(as.numeric(ss$male_level2), digits = 2)
+  ss$male_level1 <- round(as.numeric(ss$male_level1), digits = 2)
+  
+  ss$female_level8 <- round(as.numeric(ss$female_level8), digits = 2)
+  ss$female_level7 <- round(as.numeric(ss$female_level7), digits = 2)
+  ss$female_level6 <- round(as.numeric(ss$female_level6), digits = 2)
+  ss$female_level5 <- round(as.numeric(ss$female_level5), digits = 2)
+  ss$female_level4 <- round(as.numeric(ss$female_level4), digits = 2)
+  ss$female_level3 <- round(as.numeric(ss$female_level3), digits = 2)
+  ss$female_level2 <- round(as.numeric(ss$female_level2), digits = 2)
+  ss$female_level1 <- round(as.numeric(ss$female_level1), digits = 2)
+  
+  ss$h = str_extract_all(i, "\\d")
+  sim_data = rbind(sim_data,ss)
+  
+}
+
+#Renaming year 10
+sim_data[2,17] <- 10
+sim_data[,17] <- as.numeric(sim_data[,17])
+
+#Creating columns, which calculate the total percentage of women/men in the company
+sim_data$total_women <- round(((sim_data[9]+sim_data[10]+sim_data[11]+sim_data[12]+sim_data[13]+sim_data[14]+sim_data[15]+sim_data[16])/8), digits = 2) 
+
+sim_data$total_men <- round(((sim_data[1]+sim_data[2]+sim_data[3]+sim_data[4]+sim_data[5]+sim_data[6]+sim_data[7]+sim_data[8])/8), digits = 2) 
+
+#Creating new data frame only with the total percentage of men and women
+men <- sim_data$total_men
+men$year <- sim_data$h
+  
+women <- sim_data$total_women
+women <- as.data.frame(women)
+women$year <- sim_data$h
+names(women) <- c("percentage", "year")
+women$gender <- "Female"
+
+sim_data_long <- data.frame(matrix(ncol = 3, nrow = 0))
+sim_data_long <- c(men) 
+names(sim_data_long) <- c("percentage", "year")
+sim_data_long$gender <- "Male"
+
+sim_data_long <- as.data.frame(sim_data_long)
+sim_data_long <- rbind(sim_data_long, women)
+
+
+```
+
+
+```{r plot over time}
+#plot it 
+sim_data_long <- ddply(sim_data_long, .(year),
+                     transform, pos = cumsum(-0.5 *percentage) - (-1.75 * percentage))
+
+fill <- c("orange", "blue")
+p4 <- ggplot() + theme_bw() +
+  geom_bar(aes(y = percentage, x = year, fill = gender, alpha=0.7), data = sim_data_long, stat="identity") +
+  geom_text(data=sim_data_long, aes(x = year, y = pos, label = paste0(percentage,"%")), size=6) +
+  theme(legend.position="bottom", legend.direction="horizontal",
+        legend.title = element_blank()) +
+  scale_x_continuous(breaks=seq(1,10,1)) +
+  scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) +
+  labs(x="Year", y="Employees") +
+  ggtitle("Gender Distribution across levels") + 
+   theme(plot.title = element_text(size = 20, face = "bold"))
+p4 + scale_fill_manual(values=fill)
+
+
+```
+
+#Desicion bias
+
+```{r plotting hierachical gender distribution}
+
+year20_dis <- read.csv("data/simple_sim_DB.csv", stringsAsFactors = F)
+year20_dis$Results <- strsplit(year20_dis$Results, ",")
+  
+yy <- year20_dis
+yy <- list2df(yy$Results, col1 = "X1", col2 = "X2")
+yy <- subset(yy, select = -c(X2))
+yy <- t(yy)
+  
+yy <- gsub("\\[|\\]", "", yy)
+  
+yy <- data.frame(yy, stringsAsFactors = F)
+names(yy) <- c("male_level1", "male_level2", "male_level3", "male_level4", "male_level5", "male_level6", "male_level7", "male_level8","female_level1", "female_level2", "female_level3", "female_level4", "female_level5", "female_level6", "female_level7", "female_level8")
+  
+  yy$male_level8 <- round(as.numeric(yy$male_level8), digits = 2)
+  yy$male_level7 <- round(as.numeric(yy$male_level7), digits = 2)
+  yy$male_level6 <- round(as.numeric(yy$male_level6), digits = 2)
+  yy$male_level5 <- round(as.numeric(yy$male_level5), digits = 2)
+  yy$male_level4 <- round(as.numeric(yy$male_level4), digits = 2)
+  yy$male_level3 <- round(as.numeric(yy$male_level3), digits = 2)
+  yy$male_level2 <- round(as.numeric(yy$male_level2), digits = 2)
+  yy$male_level1 <- round(as.numeric(yy$male_level1), digits = 2)
+  
+  yy$female_level8 <- round(as.numeric(yy$female_level8), digits = 2)
+  yy$female_level7 <- round(as.numeric(yy$female_level7), digits = 2)
+  yy$female_level6 <- round(as.numeric(yy$female_level6), digits = 2)
+  yy$female_level5 <- round(as.numeric(yy$female_level5), digits = 2)
+  yy$female_level4 <- round(as.numeric(yy$female_level4), digits = 2)
+  yy$female_level3 <- round(as.numeric(yy$female_level3), digits = 2)
+  yy$female_level2 <- round(as.numeric(yy$female_level2), digits = 2)
+  yy$female_level1 <- round(as.numeric(yy$female_level1), digits = 2)
+ 
+#Making long format
+year20_long_m <- as.data.frame(t(yy[1:8]))  
+year20_long_m$Gender <- "Male"
+year20_long_f <- as.data.frame(t(yy[9:16]))  
+year20_long_f$Gender <- "Female"
+year20_long <- rbind(year20_long_f, year20_long_m)
+year20_long$Level <- rep(1:8, 2)
+year20_long$positions <- rep(c(500, 350, 200, 150, 100, 75, 40, 10), 2) 
+year20_long$Employees <- as.integer(year20_long$positions*(year20_long$X1/100))
+
+year20_long$Employees[year20_long$Gender == "Female"] = (year20_long$Employees[year20_long$Gender == "Female"]*(-1))
+year20_long$X1 <- round(year20_long$X1, 1)
+year20_long$pos <- rep(1:8,2)
+
+
+year20_long$employ_pos <- year20_long$Employees
+year20_long$employ_pos <- c(-261, -196, -103,  -73,  -37,  -27,   -15,   -10,  238,  153,   96,   76,   62,   47,   31,    17)
+
+
+n1 <- ggplot(year20_long, aes(x = Level, y = Employees, fill = Gender)) + 
+  geom_bar(data = subset(year20_long, Gender == "Female"), stat = "identity", position = "dodge") + 
+  geom_bar(data = subset(year20_long, Gender == "Male"), stat = "identity", position = "dodge") + 
+  scale_y_continuous(breaks = seq(-300,300,50), labels = paste0(as.character(c(c(300,250, 200, 150, 100, 50, 0), c(50, 100, 150, 200, 250,300))))) + 
+  coord_flip() + 
+  theme_bw() + 
+   theme(plot.title = element_text(size = 20, face = "bold"))
+fill <- c("orange", "blue")
+n1 + scale_fill_manual(values=fill) + geom_text(data=year20_long, aes(x = pos, y = (employ_pos), label = paste0(X1,"%")), size=4) + 
+  scale_x_discrete(limits=c("1", "2", "3", "4", "5", "6", "7", "8")) + 
+  ggtitle("Gender distribution of employees at each levels after 10 years")
+  
+
+
+
+```
+
+#comparison of all three biases
+
+```{r comparing zero bias to bias}
+DB <- read.csv("data/simple_sim_DB.csv", stringsAsFactors = F)
+IB <- read.csv("data/simple_sim_IB.csv", stringsAsFactors = F)
+EB <- read.csv("data/simple_sim_EB.csv", stringsAsFactors = F)
+
+compare_0 <- read.csv("simulation_10_nulbias.csv", stringsAsFactors = F)
+
+
+DB$Results <- strsplit(DB$Results, ",")
+IB$Results <- strsplit(IB$Results, ",")
+EB$Results <- strsplit(EB$Results, ",")
+compare_0$Results <- strsplit(compare_0$Results, ",")
+
+DB <- list2df(DB$Results, col1 = "X1", col2 = "X2")
+IB <- list2df(IB$Results, col1 = "X1", col2 = "X2")
+EB <- list2df(EB$Results, col1 = "X1", col2 = "X2")
+DB <- subset(DB, select = -c(X2))
+IB <- subset(IB, select = -c(X2))
+EB <- subset(EB, select = -c(X2))
+
+
+
+DB <- t(DB)
+IB <- t(IB)
+EB <- t(EB)
+  
+DB <- gsub("\\[|\\]", "", DB)
+IB <- gsub("\\[|\\]", "", IB)
+EB <- gsub("\\[|\\]", "", EB)
+  
+DB <- data.frame(DB, stringsAsFactors = F)
+IB <- data.frame(IB, stringsAsFactors = F)
+EB <- data.frame(EB, stringsAsFactors = F)
+
+DB <- DB[9:16]
+IB <- IB[9:16]
+EB <- EB[9:16]
+
+names(DB) <- c("female_level1", "female_level2", "female_level3", "female_level4", "female_level5", "female_level6", "female_level7", "female_level8")
+names(IB) <- c("female_level1", "female_level2", "female_level3", "female_level4", "female_level5", "female_level6", "female_level7", "female_level8")
+names(EB) <- c("female_level1", "female_level2", "female_level3", "female_level4", "female_level5", "female_level6", "female_level7", "female_level8")
+  
+  DB$female_level8 <- round(as.numeric(DB$female_level8), digits = 2)
+  DB$female_level7 <- round(as.numeric(DB$female_level7), digits = 2)
+  DB$female_level6 <- round(as.numeric(DB$female_level6), digits = 2)
+  DB$female_level5 <- round(as.numeric(DB$female_level5), digits = 2)
+  DB$female_level4 <- round(as.numeric(DB$female_level4), digits = 2)
+  DB$female_level3 <- round(as.numeric(DB$female_level3), digits = 2)
+  DB$female_level2 <- round(as.numeric(DB$female_level2), digits = 2)
+  DB$female_level1 <- round(as.numeric(DB$female_level1), digits = 2)
+ 
+  IB$female_level8 <- round(as.numeric(IB$female_level8), digits = 2)
+  IB$female_level7 <- round(as.numeric(IB$female_level7), digits = 2)
+  IB$female_level6 <- round(as.numeric(IB$female_level6), digits = 2)
+  IB$female_level5 <- round(as.numeric(IB$female_level5), digits = 2)
+  IB$female_level4 <- round(as.numeric(IB$female_level4), digits = 2)
+  IB$female_level3 <- round(as.numeric(IB$female_level3), digits = 2)
+  IB$female_level2 <- round(as.numeric(IB$female_level2), digits = 2)
+  IB$female_level1 <- round(as.numeric(IB$female_level1), digits = 2)
+ 
+  EB$female_level8 <- round(as.numeric(EB$female_level8), digits = 2)
+  EB$female_level7 <- round(as.numeric(EB$female_level7), digits = 2)
+  EB$female_level6 <- round(as.numeric(EB$female_level6), digits = 2)
+  EB$female_level5 <- round(as.numeric(EB$female_level5), digits = 2)
+  EB$female_level4 <- round(as.numeric(EB$female_level4), digits = 2)
+  EB$female_level3 <- round(as.numeric(EB$female_level3), digits = 2)
+  EB$female_level2 <- round(as.numeric(EB$female_level2), digits = 2)
+  EB$female_level1 <- round(as.numeric(EB$female_level1), digits = 2)
+ 
+DB_long <- as.data.frame(t(DB[1:8]))  
+DB_long$bias <- "Bias taken from decision bias"
+DB_long$Level <- rep(1:8,1)
+
+IB_long <- as.data.frame(t(IB[1:8]))  
+IB_long$bias <- "Bias taken from implicit bias"
+IB_long$Level <- rep(1:8,1)
+
+EB_long <- as.data.frame(t(EB[1:8]))  
+EB_long$bias <- "Bias taken from explicit bias"
+EB_long$Level <- rep(1:8,1)
+
+
+DB_long$posy <- as.numeric(DB_long$X1)
+DB_long$posy <- DB_long$posy + c(-0.5,1,1,-1.2,-1.2,-1.2,-1.2,-1.2)
+
+IB_long$posy <- as.numeric(IB_long$X1)
+IB_long$posy <- IB_long$posy + c(-0.5,1,1,-1.2,-1.2,-1.2,-1.2,-1.2)
+
+EB_long$posy <- as.numeric(EB_long$X1)
+EB_long$posy <- EB_long$posy + c(-0.5,1,1,-1.2,-1.2,-1.2,-1.2,-1.2)
+
+compare_0 <- list2df(compare_0$Results, col1 = "X1", col2 = "X2")
+compare_0 <- subset(compare_0, select = -c(X2))
+compare_0 <- t(compare_0)
+  
+compare_0 <- gsub("\\[|\\]", "", compare_0)
+  
+compare_0 <- data.frame(compare_0, stringsAsFactors = F)
+
+compare_0 <- compare_0[9:16]
+
+names(compare_0) <- c("female_level1", "female_level2", "female_level3", "female_level4", "female_level5", "female_level6", "female_level7", "female_level8")
+ 
+  
+  compare_0$female_level8 <- round(as.numeric(compare_0$female_level8), digits = 2)
+  compare_0$female_level7 <- round(as.numeric(compare_0$female_level7), digits = 2)
+  compare_0$female_level6 <- round(as.numeric(compare_0$female_level6), digits = 2)
+  compare_0$female_level5 <- round(as.numeric(compare_0$female_level5), digits = 2)
+  compare_0$female_level4 <- round(as.numeric(compare_0$female_level4), digits = 2)
+  compare_0$female_level3 <- round(as.numeric(compare_0$female_level3), digits = 2)
+  compare_0$female_level2 <- round(as.numeric(compare_0$female_level2), digits = 2)
+  compare_0$female_level1 <- round(as.numeric(compare_0$female_level1), digits = 2)
+ 
+
+compare_0_long <- as.data.frame(t(compare_0[1:8]))  
+compare_0_long$bias <- "Zero bias"
+
+compare_0_long$Level <- rep(1:8)
+compare_0_long$posy <- as.numeric(compare_0_long$X1)
+compare_0_long$posy <- compare_0_long$posy + c(-1.2,1.2,-1.2,1.2,-1.2,1.2,-1.2,1.2)
+
+
+compare_long <- rbind(compare_0_long, DB_long, IB_long, EB_long)
+
+compare <- ggplot(compare_long, aes(x = Level, y = X1, color = bias)) + 
+  geom_point() + geom_line() +
+  labs(x="Level", y="Percentage of women employees") +
+  ggtitle("Distribution of female employees after 10 years with and without a bias") + 
+  scale_x_discrete(limits=c("1", "2", "3", "4", "5", "6", "7", "8")) + 
+  scale_color_manual(values=c("purple", "gold", "pink", "orange")) + 
+  labs(color = "Bias") + 
+  scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + 
+  geom_text(data=DB_long, aes(x = Level, y = posy, label = paste0(X1,"%")), size=4, position = position_dodge(width=1))+ 
+  geom_text(data=IB_long, aes(x = Level, y = posy, label = paste0(X1,"%")), size=4, position = position_dodge(width=1))+ 
+  geom_text(data=EB_long, aes(x = Level, y = posy, label = paste0(X1,"%")), size=4, position = position_dodge(width=1))+ 
+  geom_text(data=compare_0_long, aes(x = Level, y = posy, label = paste0(X1,"%")), size=4, position = position_dodge(width=1)) +  theme_bw() + 
+   theme(plot.title = element_text(size = 20, face = "bold"))
+
+compare
+
+```

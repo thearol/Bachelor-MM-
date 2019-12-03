@@ -1,8 +1,6 @@
 from numpy import random
 import numpy as np
 import pandas as pd
-from numpy.random import choice
-
 #import matplotlib.pyplot
 
 DATA = pd.DataFrame(columns = ['Results'])
@@ -63,28 +61,17 @@ class Simulation:
         #Randomly assign gender to first employee
         next_gender = random.choice(gender)
         level = 0 #start at level 0
-        k = 1
-        CV_bias_F = 0.48
-        CV_bias_M = 0.52
         for positions in self.num_positions_at_level: #iterate over number of positions at the current level, e.g. [20,16,12,8,4] 
             employee_list_at_level = self.levels_to_employees.get(level) #start at level 0, will then build up to level 8
             append = employee_list_at_level.append #append to employee list 
-            if self.num_positions_at_level[1] == len(self.levels_to_employees.get(k)):
-                if employee_list_at_level is not None: 
-                    while len(employee_list_at_level) < positions: #while the number of employees is lower than the max number of posiitions at the level continue appending 
-                        weights = [CV_bias_M, CV_bias_F]
-                        gender_hired = choice(gender, p=weights)
-                        append(Employee(gender_hired))
-            elif self.num_positions_at_level[1] != len(self.levels_to_employees.get(k)):
-                if employee_list_at_level is not None: 
-                    while len(employee_list_at_level) < positions: #while the number of employees is lower than the max number of posiitions at the level continue appending 
-                        append(Employee(next_gender))
-                        if next_gender == "women": #shift between men and women 
-                            next_gender = "men"
-                        else: 
-                            next_gender = "women"
+            if employee_list_at_level is not None: 
+                while len(employee_list_at_level) < positions: #while the number of employees is lower than the max number of posiitions at the level continue appending 
+                    append(Employee(next_gender))
+                    if next_gender == "women": #shift between men and women 
+                        next_gender = "men"
+                    else: 
+                        next_gender = "women"
             level += 1 #go one level up
-                
 
     def run(self):
         """Run simulation"""
@@ -97,11 +84,6 @@ class Simulation:
             
 
     def talent_review(self):
-        """Defining the confidence expressions for gender combinations"""
-        conf_FF = 0.9796
-        conf_MF = 1.0340
-        conf_FM = 0.9297
-        conf_MM = 1.0567
         """Looks at each employee object in dictionary, checks gender and gives
         random performance rating"""
         for level in range(self.num_employee_levels): #loop through the levels
@@ -123,7 +105,7 @@ class Simulation:
                     
                     comitee = random.choice(employees_at_level_8, comitee_size)
 
-                    for i in comitee: #Making loop to count number of different gender at level 7
+                    for i in comitee: #Making loop to count number of different gender at lvel 7
                         if i.gender == "men":
                             men_in_comitee = float(men_in_comitee + 1)
                         else:
@@ -144,40 +126,14 @@ class Simulation:
                     current_bias_F = weighted_bias_FF + weighted_bias_MF
                     current_bias_M = weighted_bias_FM + weighted_bias_MM
                     
-                    #print("high level,  bias F", current_bias_F)
-                    #print("high level,  bias M", current_bias_M)
-                    
-                    #Weighing the confidence in relation to gender proportion in hiring comitee
-                    weighted_conf_FF = float(conf_FF)*(float(women_in_comitee)/float(comitee_size))
-                    weighted_conf_MF = float(conf_MF)*(float(women_in_comitee)/float(comitee_size))
-                    weighted_conf_MM = float(conf_MM)*(float(men_in_comitee)/float(comitee_size))
-                    weighted_conf_FM = float(conf_FM)*(float(men_in_comitee)/float(comitee_size))
-                    
-                    #Calculating current bias aginst men and women as a product of weighted  
-                    current_conf_F = weighted_conf_FF + weighted_conf_FM
-                    current_conf_M = weighted_conf_MM + weighted_conf_MF
-                    
-                    #print("high level,  conf F", current_conf_F)
-                    #print("high level,  conf M", current_conf_M)
-                    
                     if employee.gender == "men": #if own gender equals the gender which is favored, do this
                         previous_rating = employee.rating/2
                         # Saves updated rating to Employee object
-                        employee.rating = (previous_rating + new_rating)
-                        #print("high level employee rating men before bias before conf", employee.rating)
-                        employee.rating = employee.rating* current_conf_M
-                        #print("high level employee rating men before bias after conf", employee.rating)
-                        employee.rating = employee.rating * current_bias_M 
-                        #print("high level employee rating men after bias", employee.rating)
+                        employee.rating =previous_rating + (new_rating * current_bias_M) #add the bias
                     else:
                         previous_rating = employee.rating/2
-                        # Saves updated rating to Employee object
-                        employee.rating = (previous_rating + new_rating)
-                        #print("high level employee rating female before bias before conf", employee.rating)
-                        employee.rating = employee.rating * current_conf_F
-                        #print("high level employee rating female before bias after conf", employee.rating)
-                        employee.rating = employee.rating * current_bias_F 
-                        #print("high level employee rating female after bias", employee.rating)
+                            # Saves updated rating to Employee object
+                        employee.rating = previous_rating + (new_rating * current_bias_F)
             
             if level in (0, 1, 2, 3, 4, 5):    
                 for employee in employee_list: #for i in employee list --> so two loops in one 
@@ -233,27 +189,15 @@ class Simulation:
                     #Calculating current bias aginst men and women as a product of weighted  
                     current_bias_F = weighted_bias_FF + weighted_bias_MF
                     current_bias_M = weighted_bias_FM + weighted_bias_MM
-                    
-                    #Weighing the confidence in relation to gender proportion in hiring comitee
-                    weighted_conf_FF = float(conf_FF)*(float(women_in_comitee)/float(comitee_size))
-                    weighted_conf_MF = float(conf_MF)*(float(women_in_comitee)/float(comitee_size))
-                    weighted_conf_MM = float(conf_MM)*(float(men_in_comitee)/float(comitee_size))
-                    weighted_conf_FM = float(conf_FM)*(float(men_in_comitee)/float(comitee_size))
-                    
-                    #Calculating current bias aginst men and women as a product of weighted  
-                    current_conf_F = weighted_conf_FF + weighted_conf_FM
-                    current_conf_M = weighted_conf_MM + weighted_conf_MF
 
                     if employee.gender == "men": #if own gender equals the gender which is favored, do this
                         previous_rating = employee.rating/2
                         # Saves updated rating to Employee object
-                        employee.rating = (previous_rating + new_rating) * current_conf_M
-                        employee.rating = employee.rating * current_bias_M 
+                        employee.rating =previous_rating + (new_rating * current_bias_M) #add the bias
                     else:
                         previous_rating = employee.rating/2
-                        # Saves updated rating to Employee object
-                        employee.rating = (previous_rating + new_rating) * current_conf_F
-                        employee.rating = employee.rating * current_bias_F 
+                            # Saves updated rating to Employee object
+                        employee.rating = previous_rating + (new_rating * current_bias_F)
                     
     def attrit(self):
         """Looks at each employee in dictionary and randomly retains employees
@@ -321,20 +265,19 @@ class Control:
         self.promotion_bias_FM = int(promotion_bias_FM)
         self.promotion_bias_MM = int(promotion_bias_MM)
         self.promotion_bias_MF = int(promotion_bias_MF)
-        self.num_simulations = 1000 #defining number of simulations, usually set to 1000
+        self.num_simulations = 1000 #defining number of simulations
         self.attrition = 15 #15% turnover rate is applied
-        self.iterations_per_simulation = 1 #20 performance-review cycles are generated 
+        self.iterations_per_simulation = 20 #20 performance-review cycles are generated 
         self.num_positions_at_level = [500, 350, 200, 150, 100, 75, 40, 10] #define hierarchy
         self.num_employee_levels = len(self.num_positions_at_level) #define number of employee levels
 
     def run_simulations(self):
         """Run NUM_SIMULATIONS simulations"""
         self.results = [] #creating empty list
-        append = self.results.append
+        append = self.results.append 
         for _ in range(self.num_simulations):#_ emphasize the value in the xrange is subordinate, it just needs to run the number of iterations in this case 30 times - as it is 30 simulations
             simulation = Simulation(self.num_simulations, self.attrition, self.iterations_per_simulation, 
                 self.promotion_bias_FF, self.promotion_bias_FM, self.promotion_bias_MM, self.promotion_bias_MF, self.num_positions_at_level) #Adding information to the previously defined function
-            
             simulation.run() #run the simulation
             append(simulation.get_result()) #use the results function previously defined to append the results to results list
 
@@ -356,7 +299,7 @@ class Control:
             total_employees = total_num_men + total_num_women #Counting total number of employees
             men_percentage = 100 * total_num_men / total_employees #calculating the percentage of men
             women_percentage = 100 * total_num_women / total_employees #calculating the percentage of women
- 
+
             men_append(men_percentage)
             women_append(women_percentage)
         return [total_men_at_levels, total_women_at_levels]
@@ -364,8 +307,8 @@ class Control:
 
 ####OUTPUT SECTION
 #Actual raesults from our experiment
-#promotion_bias_FF, promotion_bias_FM, promotion_bias_MM, promotion_bias_MF
-control = Control(-2, 2, -2, 2)
+#FF, FM, MM, MF
+control = Control(-3, 3, 2, -2)
 
 control.run_simulations()
 results = control.fetch_results()
@@ -378,4 +321,4 @@ print(results)
 DATA = DATA.append({
     'Results': results}, ignore_index = True)
 
-DATA.to_csv('simulation_1.csv')
+DATA.to_csv('simple_sim_DB.csv')
