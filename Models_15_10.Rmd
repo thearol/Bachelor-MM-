@@ -22,7 +22,6 @@ data_ib <- read.csv("implicit_bias/data_ib.csv")[,2:12]
 data_eb <- read.csv("explicit_bias/eb_results.csv")[, 2:6]
 data_db <- read.csv("decision_bias/disagree_sensitivity_db_long.csv")[, 2:44]
 data_db_all <- read.csv("decision_bias/data_db_all.csv")
-data_db_long <- read.csv("decision_bias/long_data_db.csv")
 ```
 
 
@@ -73,6 +72,7 @@ marginal_effects(model_ib2)
 
 plot(model_ib2)
 
+effective_sample(model_ib2)
 ```
 
 
@@ -81,7 +81,7 @@ plot(model_ib2)
 ```{r}
 hypothesis(model_ib2, "(Intercept + genderMale)/2 > ((Intercept + condition1)+(Intercept + condition1+genderMale+condition1:genderMale)/2)")
 
-hypothesis(model_ib2, "condition1 > condition1 + condition1:genderMale")
+hypothesis(model_ib2, "condition1 = condition1 + condition1:genderMale")
 
 ```
 
@@ -144,7 +144,7 @@ H_ib_interaction <- ggplot(pred_ib2, aes(x = condition, y = Estimate_sec, fill =
   scale_fill_manual(values=c("orange", "blue")) +
   theme(plot.title = element_text(hjust = 0.5)) + 
   scale_y_continuous(labels=scales::number_format(accuracy = 0.01, decimal.mark = '.')) + 
-  theme(text = element_text(size=15))
+  theme(text = element_text(size=20))
   
  
 
@@ -201,6 +201,7 @@ model_eb1.1_prior <- brm(overall_score ~ gender + (1|ID),
                     prior = prior_eb1.1,
                     sample_prior = "only",
                     cores = 2,
+                    seed = 123,
                     chains = 2)
 
 model_eb1.2_prior <- brm(overall_score ~ gender + (1|ID),
@@ -208,8 +209,9 @@ model_eb1.2_prior <- brm(overall_score ~ gender + (1|ID),
                     family = gaussian(),
                     prior = prior_eb1.2,
                     sample_prior = "only",
-                    cores = 2,
-                    chains = 2)
+                    seed = 123,
+                    cores = 4,
+                    chains = 4)
 
 #prior check for both priors
 pp_check(model_eb1.1_prior, nsamples = 100) #Doing a predictive prior check to test priors
@@ -218,15 +220,16 @@ pp_check(model_eb1.2_prior, nsamples = 100)
 
 #models with both priors 
 model_eb1.1 <- brm(overall_score ~ gender + (1|ID),
-                    data = data_eb,
-                    family = gaussian(),
-                    prior = prior_eb1.1,
-                    sample_prior = TRUE,
-                    iter = 5000,
-                    warmup = 2000,
-                    cores = 4,
-                    chains = 4, 
-                    control = list(adapt_delta = 0.9))
+                   data = data_eb,
+                   family = gaussian(),
+                   prior = prior_eb1.1,
+                   sample_prior = TRUE,
+                   iter = 5000,
+                   warmup = 2000,
+                   cores = 4,
+                   chains = 4,
+                   seed = 123,
+                   control = list(adapt_delta = 0.9))
 
 model_eb1.2 <- brm(overall_score ~ gender + (1|ID),
                     data = data_eb,
@@ -237,6 +240,7 @@ model_eb1.2 <- brm(overall_score ~ gender + (1|ID),
                     warmup = 2000,
                     cores = 4,
                     chains = 4, 
+                   seed = 123,
                     control = list(adapt_delta = 0.9)) 
 
 waic(model_eb1.1, model_eb1.2)
@@ -271,6 +275,7 @@ model_eb2_prior <- brm(benevolent_score ~ gender*hostile_score + (1|ID),
                     prior = prior_eb2,
                     sample_prior = "only",
                     cores = 2,
+                    seed = 123,
                     chains = 2)
 
 #prior check for both priors
@@ -278,15 +283,16 @@ pp_check(model_eb2_prior, nsamples = 100) #Doing a predictive prior check to tes
 
 #model
 model_eb2 <- brm(benevolent_score ~ gender*hostile_score + (1|ID),
-                    data = data_eb,
-                    family = gaussian(),
-                    prior = prior_eb2,
-                    sample_prior = TRUE,
-                    iter = 5000,
-                    warmup = 2000,
-                    cores = 4,
-                    chains = 4, 
-                    control = list(adapt_delta = 0.9))
+                 data = data_eb,
+                 family = gaussian(),
+                 prior = prior_eb2,
+                 sample_prior = TRUE,
+                 iter = 5000,
+                 warmup = 2000,
+                 cores = 4,
+                 chains = 4, 
+                 seed = 123,
+                 control = list(adapt_delta = 0.9))
 
 summary(model_eb2)
 
@@ -314,6 +320,7 @@ model_eb3_prior <- brm(hostile_score ~ gender*benevolent_score + (1|ID),
                     prior = prior_eb3,
                     sample_prior = "only",
                     cores = 2,
+                    seed = 123,
                     chains = 2)
 
 #prior check for both priors
@@ -321,15 +328,16 @@ pp_check(model_eb3_prior, nsamples = 100) #Doing a predictive prior check to tes
 
 #model
 model_eb3 <- brm(hostile_score ~ gender*benevolent_score + (1|ID),
-                    data = data_eb,
-                    family = gaussian(),
-                    prior = prior_eb3,
-                    sample_prior = TRUE,
-                    iter = 5000,
-                    warmup = 2000,
-                    cores = 4,
-                    chains = 4, 
-                    control = list(adapt_delta = 0.9))
+                 data = data_eb,
+                 family = gaussian(),
+                 prior = prior_eb3,
+                 sample_prior = TRUE,
+                 iter = 5000,
+                 warmup = 2000,
+                 cores = 4,
+                 chains = 4,
+                 seed = 123,
+                 control = list(adapt_delta = 0.9))
 
 summary(model_eb3)
 
@@ -388,7 +396,9 @@ H3.1.1 <- ggplot(data_eb, aes(x = gender, y = overall_score, fill = gender)) +
   theme(legend.position = "none", panel.grid.minor = element_blank()) + 
   geom_point(aes(x = gender, y = mean_prediction), data = pred_eb1.1, size = 2) + 
   scale_fill_manual(values=c("orange", "blue")) +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme(text = element_text(size=20))
+
 H3.1.1
 ```
 
@@ -427,7 +437,8 @@ H3.2.1 <- ggplot(data_eb, aes(x = gender, y = benevolent_score, fill = gender)) 
   theme(legend.position = "none", panel.grid.minor = element_blank()) + 
   geom_point(aes(x = gender, y = mean_prediction), data = pred_eb1.1_2, size = 2) + 
   scale_fill_manual(values=c("orange", "blue"))+
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(text = element_text(size=20))
 H3.2.1
 ```
 
@@ -602,73 +613,6 @@ H3.3.3$labels$colour <- "Gender"
 H3.3.3
 ```
 
-#Extracting the EB to the simulation
-
-  For the explicit task: The sexism score we have range on a scale from 0 to 6. 0 indicating no sexist behaviour, 6 highly sexist behaviour. As most questions ask about women in relation to men, we have thought of setting the 0 as the bias towards men and the hostile, benevolent or combined score as the bias towards women. But this might be very constructed as there is no possibility of disfavoring men.
-   Do you have an idea of how to extract biases from this measure?
-
-In abstract, somebody w 0 would have the same "bias" for men and women (1, and 1, let's say), right? So no, there is no way to model a bias against men. That's a limit of the measure, to be discussed. On the other hand, if these measures correlate with other biases (e.g. implicit and db), you can say it's capturing something (and we have good prior info about sexism being disproportionally against women).
-How to define the simulation bias from this? Let's define a pavement bias: 0? 0.5? You then rescale the scores so that 6 is the lowest value and 0 is 1.
-
-```{r}
-#Defining 0.5 as the baseline based on the theory, which states that pariticpants rarely use extreme values in scales. Thus, if you answer the question in the direction of non-sexist using either the most extreme or the second most extreme possibility, you roughly get a score around 0.5. 
-
-data_eb_r = data_eb
-
-#Subtracting the pavement bias of 0.5
-data_eb_r$overall_score <- data_eb_r$overall_score - 1
-data_eb_r$benevolent_score <- data_eb_r$benevolent_score - 1
-data_eb_r$hostile_score<- data_eb_r$hostile_score -1
-
-#Reverting the scores, making a score of 5 a score of 0 and visa versa
-data_eb_r$overall_score <- 5 - data_eb_r$overall_score
-data_eb_r$benevolent_score <- 5 - data_eb_r$benevolent_score
-data_eb_r$hostile_score <- 5 - data_eb_r$hostile_score
-
-
-
-#scaling to values to a scale ranging from 0-1
-data_eb_r$overall_score <- rescale(data_eb_r$overall_score, to = c(0, 1), from = range(0,5))
-data_eb_r$benevolent_score <- rescale(data_eb_r$benevolent_score, to = c(0, 1), from = range(0,5))
-data_eb_r$hostile_score <- rescale(data_eb_r$hostile_score, to = c(0, 1), from = range(0,5))
-
-
-#Rerunning the model to get new estimates
-
-#Defining a prior, mean set to 0.5 because best conceptual meaning
-prior_eb1_scaled = c(prior(normal(0.75, 0.1), class = "Intercept"), 
-          prior(normal(0, 0.1), class = "b"), 
-          prior(normal(0, 0.1), class = "sigma"),
-          prior(normal(0, 0.05), class = "sd"))
-
-#explicit model
-model_eb1_scaled <- brm(overall_score ~ gender + (1|ID),
-                    data = data_eb_r,
-                    family = gaussian(),
-                    prior = prior_eb1_scaled,
-                    sample_prior = "only",
-                    cores = 2,
-                    chains = 2)
-
-#prior check 
-pp_check(model_eb1_scaled, nsamples = 100) #Doing a predictive prior check to test priors
-
-#models
-model_eb1_scaled <- brm(overall_score ~ gender + (1|ID),
-                    data = data_eb_r,
-                    family = gaussian(),
-                    prior = prior_eb1_scaled,
-                    sample_prior = TRUE,
-                    iter = 8000,
-                    warmup = 4000,
-                    cores = 4,
-                    chains = 6, 
-                    control = list(adapt_delta = 0.999))
-
-
-```
-
-
 
 #DECISION BIAS
 Below are models: Firstly, the reconstructon of the model and the results from last year. Secondly, new combinations of the variables with the goal of finding the best model. 
@@ -708,6 +652,10 @@ model_db1 <- brm(
   #control = list(adapt_delta = 0.9) 
 ) 
 summary(model_db1)
+
+plot(model_db1)
+
+marginal_effects(model_db1)
 ```
 
 ##New models
@@ -745,7 +693,7 @@ marginal_effects(model_db2)
 
 summary(model_db2) 
 
-
+plot(model_db2)
 ```
 
 
@@ -811,6 +759,7 @@ model_db4_prior <- brm(leader_behavior ~ 0 + conf_dif_c*Leader_gender:Follower_g
                        sample_prior = "only",
                        iter = 4000, 
                        family = "bernoulli", 
+                       seed = 123,
                        chains = 2, 
                        cores = 2)
 
@@ -829,23 +778,6 @@ model_db4 <- brm(leader_behavior ~ 0 +conf_dif_c*Leader_gender:Follower_gender+ 
 ) 
 summary(model_db4)
 ```
-
-#Colonmodel...
-
-```{r}
-model_db4.1 <- brm(leader_behavior ~ 0 +conf_dif_c:Leader_gender:Follower_gender+ (0 + skill_dif_roll_c:Follower_gender | SubjectID),
-  data = data_db,
-  prior = prior_db4,
-  sample_prior=T,
-  family = "bernoulli", #As we had a binary outcome, we set this to "bernoulli"
-  seed = 123, # Adding a seed makes results reproducible.
-  chains=4,
-  cores=4
-  #control = list(adapt_delta = 0.9) 
-) 
-summary(model_db4.1)
-```
-
 
 
 
@@ -870,6 +802,7 @@ model_db5_prior <- brm(Response_abs ~ Gender*Partner_gender+ (1 | SubjectID),
                        sample_prior = "only",
                        iter = 4000, 
                        family = "gaussian", 
+                       seed = 123,
                        chains = 2, 
                        cores = 2)
 
@@ -888,7 +821,7 @@ model_db5 <- brm(Response_abs ~ Gender*Partner_gender + (1 | SubjectID),
 ) 
 marginal_effects(model_db5)
 
-
+plot(model_db5)
 summary(model_db5)
 
 ```
@@ -913,6 +846,7 @@ model_db6_prior <- brm(response_dummy ~ diff*Gender + (1+diff|SubjectID),
                        family = "bernoulli", 
                        chains = 2,
                        control= list(adapt_delta = 0.99),
+                       seed = 123,
                        cores = 2)
 
 pp_check(model_db6_prior, nsamples = 100)
@@ -928,13 +862,18 @@ model_db6 <- brm(
   cores=4,
   chains=4
 ) 
+plot(model_db6)
 
+summary(model_db6)
+
+marginal_effects(model_db6)
 ```
 
 ##Waic
 ```{r waic}
-waic(model_db1, model_db2, model_db3, model_db4)
+waic <- waic(model_db1, model_db2, model_db3, model_db4)
 
+waic
 
 ```
 
@@ -1584,14 +1523,4 @@ model_db_conf_skill <- brm(Sensitivity_roll ~ 1 + Response_abs * Gender + (1 | S
 ) 
 
 ```
-
-
-#GENDER BIAS
-
-Lav modeller, der kombinerer data fra de tre forskellige dele. 
-
-
-
-
-
 

@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #Getting packages
 ```{r loading packages, include = FALSE}
 library(pacman)
-p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel, utils, igraph)
+p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel, utils, igraph, textshape, CDM)
 ```
 
 #Setting directory
@@ -118,19 +118,7 @@ cor_f <- as.data.frame(vcov(gb_model1_f, correlation = TRUE))
 cor_m <- as.data.frame(vcov(gb_model1_m, correlation = TRUE))
 
 
-gb_model1_f_try <- brm(
-  mvbind(benevolent_score, hostile_score, rt_dif, DB, DB_skill, DB_conf) ~ 1  + (1|ID),
-  data = data_gb_female, 
-  chains = 2,
-  iter = 8000,
-  cores = 2,
-  sample_prior=T,
-  prior = prior_gb, 
-  family = gaussian, 
-  control = list(adapt_delta = 0.99, max_treedepth = 15))
 
-cor_f_try <- as.data.frame(vcov(gb_model1_f_try, correlation = TRUE))
-write.csv(cor_f_try, file = "cor_f_try.csv")
 ```
 
 
@@ -152,19 +140,6 @@ write.csv(cor_f, file = "cor_f.csv")
 write.csv(cor_m, file = "cor_m.csv")
 
 
-#plot network
-
-V(cor_f)
-
-cor_f[]
-
-plot(cor_f, edge.arrow.size=.5)
-
-eg <- make_empty_graph(40)
-plot(eg, vertex.size=10, vertex.label=NA)
-
-
-
 ```
 
 
@@ -173,12 +148,10 @@ plot(eg, vertex.size=10, vertex.label=NA)
 #Make network plot
 ```{r}
 cor_f <- read.csv("cor_f.csv")#[1:4,1:5]
-cor_f <- column_to_rownames(cor_f, loc = 1)
+cor_f <- textshape:::column_to_rownames(cor_f, loc = 1)
 
 cor_m <- read.csv("cor_m.csv")#[1:4,1:5]
 cor_m <- column_to_rownames(cor_m, loc = 1)
-
-
 
 ```
 
@@ -315,71 +288,6 @@ model_gb_2 <- brm(DB_fix ~ rt_dif_fix + (1|ID),
 
 
 summary(model_gb_2)
-```
-
-
-
-
-#skal slettes efter
-
-#Make network plot
-```{r}
-cor_f_try <- read.csv("cor_f_try.csv")[1:4,1:5]
-cor_f_try <- column_to_rownames(cor_f_try, loc = 1)
-
-
-```
-
-
-
-#WOMEN
-```{r}
-#Reshaping the data frame
-cor_f_try_df <- data.frame(FROM=rownames(cor_f_try)[row(cor_f_try)], TO=colnames(cor_f_try)[col(cor_f_try)], corr=do.call(c, c(cor_f_try)))
-
-cor_f_try_df$TO <- gsub("\\.", " ", cor_f_try_df$TO)
-
-###Edges
-
-#Adding variables of negative and positive correlation
-cor_f_try_df$corr_dir <- ifelse(cor_f_try_df$corr < 0, 1, 2)
-
-#Tranformsing the correlations into absolute values
-cor_f_try_df$corr <- abs(cor_f_try_df$corr)
-
-#Removing edges below 0.1
-cor_f_try_df$corr[cor_f_try_df$corr<0.01] <- NA
-
-###Nodes
-nodes <- as.data.frame(as.character(unique(cor_f_try_df[,1])))
-
-
-###PLOTTING
-
-#Creating graph object
-net_f <- graph_from_data_frame(d=cor_f_try_df, vertices=nodes, directed=F) 
-
-#Removing loops 
-net_f <- simplify(net_f, remove.multiple = F, remove.loops = T) 
-
-
-#Adding edge color based on positive or negative correlation
-colrs <- c("orange", "blue")
-
-E(net_f)$color <- colrs[E(net_f)$corr_dir]
-
-# Set edge width based on weight:
-E(net_f)$width <- E(net_f)$corr*15
-
-E(net_f)$length <- 1/(E(net_f)$corr)*15
-
-plot(net_f, vertex.label.color="black", vertex.label.dist=3, vertex.size=14, vertex.color="black", edge.curved=0, main = "Correlation plot (females)", layout = layout_nicely)
-
-legend(x=-1.3, y=-1.1, c("Negative correlation","Positive correlation"), pch=21,
-
-       col="#777777", pt.bg=colrs, pt.cex=2, cex=.8, bty="n", ncol=1)
-
-
 ```
 
 

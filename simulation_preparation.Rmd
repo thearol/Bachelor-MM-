@@ -11,13 +11,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r working directory and data and library}
 library(pacman)
-p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel, utils, boot, Hmisc)
+p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel, utils, boot, Hmisc, scales)
 
 setwd("~/Bachelor-MM-/") #TRS
 
-
+data_eb <- read.csv("explicit_bias/eb_results.csv")[, 2:6]
 data_ib <- read.csv("implicit_bias/data_ib.csv")[,2:12]
 ```
+
+
+###Implicit bias 
 
 ```{r prepare filtered dataframe}
 female_names <- c("Josefine", "Line", "Mette", "Ruth", "Birthe", "Camilla", "Hanne" )
@@ -72,4 +75,75 @@ plot(model_ib2.2)
 
 marginal_effects(model_ib2.2)
 ```
+
+###Extracting the EB to the simulation
+
+  For the explicit task: The sexism score we have range on a scale from 0 to 6. 0 indicating no sexist behaviour, 6 highly sexist behaviour. As most questions ask about women in relation to men, we have thought of setting the 0 as the bias towards men and the hostile, benevolent or combined score as the bias towards women. But this might be very constructed as there is no possibility of disfavoring men.
+   Do you have an idea of how to extract biases from this measure?
+
+In abstract, somebody w 0 would have the same "bias" for men and women (1, and 1, let's say), right? So no, there is no way to model a bias against men. That's a limit of the measure, to be discussed. On the other hand, if these measures correlate with other biases (e.g. implicit and db), you can say it's capturing something (and we have good prior info about sexism being disproportionally against women).
+How to define the simulation bias from this? Let's define a pavement bias: 0? 0.5? You then rescale the scores so that 6 is the lowest value and 0 is 1.
+
+```{r}
+#Defining 0.5 as the baseline based on the theory, which states that pariticpants rarely use extreme values in scales. Thus, if you answer the question in the direction of non-sexist using either the most extreme or the second most extreme possibility, you roughly get a score around 0.5. 
+
+data_eb_r = data_eb
+
+#Reverting the scores, making a score of 5 a score of 0 and visa versa
+data_eb_r$overall_score <- 5 - data_eb_r$overall_score
+data_eb_r$benevolent_score <- 5 - data_eb_r$benevolent_score
+data_eb_r$hostile_score <- 5 - data_eb_r$hostile_score
+
+#Subtracting the pavement bias of 1
+data_eb_r$overall_score <- data_eb_r$overall_score + 1.5
+data_eb_r$benevolent_score <- data_eb_r$benevolent_score + 1.5
+data_eb_r$hostile_score<- data_eb_r$hostile_score + 1.5
+
+#Make everything over 5 to 5
+data_eb_r$overall_score <- ifelse(data_eb_r$overall_score < 5, data_eb_r$overall_score, 5) 
+data_eb_r$benevolent_score <- ifelse(data_eb_r$benevolent_score < 5, data_eb_r$benevolent_score, 5) 
+data_eb_r$hostile_score<- ifelse(data_eb_r$hostile_score < 5, data_eb_r$hostile_score, 5) 
+
+#scaling to values to a scale ranging from 0-1
+data_eb_r$overall_score <- rescale(data_eb_r$overall_score, to = c(0, 1.0), from = range(0,5))
+data_eb_r$benevolent_score <- rescale(data_eb_r$benevolent_score, to = c(0, 1.0), from = range(0,5))
+data_eb_r$hostile_score <- rescale(data_eb_r$hostile_score, to = c(0, 1.0), from = range(0,5))
+
+
+#Rerunning the model to get new estimates
+
+#Defining a prior, mean set to 0.5 because best conceptual meaning
+prior_eb1_scaled = c(prior(normal(0.8, 0.1), class = "Intercept"), 
+          prior(normal(0, 0.1), class = "b"), 
+          prior(normal(0, 0.1), class = "sigma"),
+          prior(normal(0, 0.05), class = "sd"))
+
+#explicit model
+model_eb1_scaled <- brm(overall_score ~ gender + (1|ID),
+                    data = data_eb_r,
+                    family = gaussian(),
+                    prior = prior_eb1_scaled,
+                    sample_prior = "only",
+                    cores = 2,
+                    chains = 2)
+
+#prior check 
+pp_check(model_eb1_scaled, nsamples = 100) #Doing a predictive prior check to test priors
+
+#models
+model_eb1_scaled <- brm(overall_score ~ gender + (1|ID),
+                    data = data_eb_r,
+                    family = gaussian(),
+                    prior = prior_eb1_scaled,
+                    sample_prior = TRUE,
+                    iter = 8000,
+                    warmup = 4000,
+                    cores = 4,
+                    chains = 6, 
+                    seed = 123,
+                    control = list(adapt_delta = 0.999))
+
+
+```
+
 
