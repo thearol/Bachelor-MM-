@@ -88,9 +88,25 @@ prior_gb <- c(
  prior(lkj(5), class=rescor)
 )
 
+#female prior predictive check 
+gb_model1_f_prior <- brm(
+  mvbind(benevolent_score, hostile_score, rt_dif, DB) ~ 1,
+  data = data_gb_female, 
+  chains = 2,
+  iter = 8000,
+  cores = 2,
+  sample_prior= "only",
+  prior = prior_gb, 
+  family = gaussian, 
+  control = list(adapt_delta = 0.99, max_treedepth = 15))
+
+pp_check(gb_model1_f_prior, nsamples = 100)
+
+pp_check(gb_model1_f_prior, nsamples = 100, resp = 'DB')
+
 #female netowrk
 gb_model1_f <- brm(
-  mvbind(benevolent_score, hostile_score, rt_dif, DB, DB_skill, DB_conf) ~ 1,
+  mvbind(benevolent_score, hostile_score, rt_dif, DB) ~ 1,
   data = data_gb_female, 
   chains = 2,
   iter = 8000,
@@ -101,9 +117,25 @@ gb_model1_f <- brm(
   control = list(adapt_delta = 0.99, max_treedepth = 15))
 
 
+#male network model prior
+gb_model1_m_prior <- brm(
+  mvbind(benevolent_score, hostile_score, rt_dif, DB) ~ 1,
+  data = data_gb_male, 
+  chains = 2,
+  iter = 8000,
+  cores = 2,
+  sample_prior= "only",
+  prior = prior_gb, 
+  family = gaussian, 
+  control = list(adapt_delta = 0.99, max_treedepth = 15))
+
+
+
+
+
 #male network model
 gb_model1_m <- brm(
-  mvbind(benevolent_score, hostile_score, rt_dif, DB, DB_skill, DB_conf) ~ 1,
+  mvbind(benevolent_score, hostile_score, rt_dif, DB) ~ 1,
   data = data_gb_male, 
   chains = 2,
   iter = 8000,
@@ -112,6 +144,8 @@ gb_model1_m <- brm(
   prior = prior_gb, 
   family = gaussian, 
   control = list(adapt_delta = 0.99, max_treedepth = 15))
+
+pp_check(gb_model1_m, nsamples = 100, resp = 'DB')
 
 
 cor_f <- as.data.frame(vcov(gb_model1_f, correlation = TRUE))
@@ -147,10 +181,10 @@ write.csv(cor_m, file = "cor_m.csv")
 
 #Make network plot
 ```{r}
-cor_f <- read.csv("cor_f.csv")#[1:4,1:5]
+cor_f <- read.csv("cor_f.csv")[1:4,1:5]
 cor_f <- textshape:::column_to_rownames(cor_f, loc = 1)
 
-cor_m <- read.csv("cor_m.csv")#[1:4,1:5]
+cor_m <- read.csv("cor_m.csv")[1:4,1:5]
 cor_m <- column_to_rownames(cor_m, loc = 1)
 
 ```

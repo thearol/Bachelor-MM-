@@ -8,7 +8,7 @@ output: html_document
 #Getting packages
 ```{r loading packages, include = FALSE}
 library(pacman)
-p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel, utils, boot, Hmisc, scales)
+p_load(brms, tidyverse, tidybayes, ggplot2, LaplacesDemon, rethinking, tidyr, reshape2, tibble, plotly, jpeg, tm, ggrepel, utils, boot, Hmisc, scales, gridExtra)
 ```
 
 #Setting directory
@@ -77,11 +77,19 @@ effective_sample(model_ib2)
 
 
 
-##Implicit bias, hypothesis testing
+##Hypothesis testing
+###H2.1
 ```{r}
 hypothesis(model_ib2, "(Intercept + genderMale)/2 > ((Intercept + condition1)+(Intercept + condition1+genderMale+condition1:genderMale)/2)")
 
+
+
+```
+
+#H2.2
+```{r}
 hypothesis(model_ib2, "condition1 = condition1 + condition1:genderMale")
+
 
 ```
 
@@ -123,11 +131,13 @@ pred_ib2$condition <- ifelse(pred_ib2$condition == 0, "Congruent", "Incongruent"
 #create the plot
 H2.2.1 <- ggplot(pred_ib2, aes(x = gender, y = dif, fill = gender)) +
   labs(x = "Gender", y = "Difference in reaction time (log)", title = "Hypothesis 2.2.1") +
-  geom_bar(stat="summary", position = position_dodge2())  + 
-#geom_errorbar(aes(ymin=0, ymax=dif + Est.Error),width=.2,position=position_dodge(.9)) + 
+  geom_bar(stat="summary", position = position_dodge2(), alpha = 0.6)  + 
+ #stat_summary(fun.data = "mean_cl_boot", colour = "red") +
+  geom_errorbar(aes(ymin=0, ymax=(mean(dif) + mean(Est.Error))),width=.2,position=position_dodge(.9)) + 
   #geom_point(aes(x = condition, y = Estimate_prop, fill = gender), data = pred_ib2, size = 2, position = position_dodge2(width= 0.1)) + 
   scale_fill_manual(values=c("orange", "blue")) +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme(text = element_text(size=20))
 
 
 H2.2.1
@@ -156,13 +166,16 @@ H_ib_interaction
 
 ```{r}
 
+(y+runif(100, -1, -0.5))
+
 #plot with lines 
-H2.2.1_lines <- ggplot(pred_ib2, aes(x = condition, y = Estimate, group = gender, color = gender)) + 
+H2.2.1_lines <- ggplot(pred_ib2, aes(x = condition, y = Estimate_sec, group = gender, color = gender)) + 
   scale_color_manual(values=c("orange", "blue"), name = "Gender") + 
-  stat_summary(fun.data = "mean_cl_boot", color = "black", size = 1.5, geom = "point") + 
+  #stat_summary(fun.data = "mean_cl_boot", color = "black", size = 1.5, geom = "point") +
   stat_summary(fun.y = mean, geom="line") + 
+  
   labs(x = "Condition", y = "Reaction time (seconds)", title = "Hypothesis 2.2") + 
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) 
 H2.2.1_lines
 
 ```
@@ -351,20 +364,25 @@ plot(model_eb3)
 ```{r}
 #Model 1
 #Females have higher overall sexism score than males
-hypothesis(model_eb1.1, "genderMale < 0")
+hypothesis(model_eb1.1, "genderMale = 0")
 
 
 #Model 2
-#Females have higher benevolent scores 
-hypothesis(model_eb2, "genderMale < 0")
+#Females and men have the same benevolent scores 
+hypothesis(model_eb2, "0 = genderMale + genderMale:hostile_score")
+
+hypothesis(model_eb2, "Intercept + hostile_score < Intercept + hostile_score + genderMale + genderMale:hostile_score")
 
 #There is a positive relationship between benevolent score and hostile score across gender
-hypothesis(model_eb2, "0 > genderMale:hostile_score")
+hypothesis(model_eb2, "  0 < hostile_score + genderMale:hostile_score")
 
 
 #Model 3
-#females have a higher hostile score than males
-hypothesis(model_eb3, "genderMale < 0")
+#females and males have the same hostile score
+hypothesis(model_eb3, "0 = genderMale + genderMale:benevolent_score")
+
+#females have a higher hostile score
+hypothesis(model_eb3, "Intercept + benevolent_score > Intercept + benevolent_score + genderMale + genderMale:benevolent_score")
 
 ```
 
@@ -384,20 +402,21 @@ pred_eb1.1 <-
   as_tibble() %>%
   bind_cols(nd_eb1.1)
 
-pred_eb1.1 <- pred_eb1.1 %>% group_by(gender) %>% summarise(mean_prediction = mean(Estimate))
+pred_eb1.1_mean <- pred_eb1.1 %>% group_by(gender) %>% summarise(mean_prediction = mean(Estimate))
 ```
 
 
 ```{r H3.1.1 plot}
 #create the plot
-H3.1.1 <- ggplot(data_eb, aes(x = gender, y = overall_score, fill = gender)) +
+H3.1.1 <- ggplot(pred_eb1.1, aes(x = gender, y = overall_score, fill = gender)) +
   labs(x = "Gender", y = "Overall Sexism Score", title = "Hypothesis 3.1") +
-  geom_boxplot(aes(x = gender, overall_score) , data = data_eb, width = 0.5, alpha = 0.4) + 
+  geom_boxplot(aes(x = gender, Estimate) , data = pred_eb1.1, width = 0.5, alpha = 0.4) + 
   theme(legend.position = "none", panel.grid.minor = element_blank()) + 
-  geom_point(aes(x = gender, y = mean_prediction), data = pred_eb1.1, size = 2) + 
+  geom_point(aes(x = gender, y = mean_prediction), data = pred_eb1.1_mean, size = 2) + 
   scale_fill_manual(values=c("orange", "blue")) +
   theme(plot.title = element_text(hjust = 0.5)) + 
-  theme(text = element_text(size=20))
+  theme(text = element_text(size=20)) + 
+  ylim(low=1.45, high=1.85)
 
 H3.1.1
 ```
@@ -425,7 +444,7 @@ pred_eb1.1_2 <-
   as_tibble() %>%
   bind_cols(nd_eb1.1_2)
 
-pred_eb1.1_2 <- pred_eb1.1_2 %>% group_by(gender) %>% summarise(mean_prediction = mean(Estimate))
+pred_eb1.1_2_mean <- pred_eb1.1_2 %>% group_by(gender) %>% summarise(mean_prediction = mean(Estimate))
 ```
 
 
@@ -433,12 +452,13 @@ pred_eb1.1_2 <- pred_eb1.1_2 %>% group_by(gender) %>% summarise(mean_prediction 
 #create the plot
 H3.2.1 <- ggplot(data_eb, aes(x = gender, y = benevolent_score, fill = gender)) +
   labs(x = "Gender", y = "Benevolent Score", title = "Hypothesis 3.2") +
-  geom_boxplot(aes(x = gender, benevolent_score) , data = data_eb, width = 0.5, alpha = 0.4) + 
+  geom_boxplot(aes(x = gender, Estimate) , data = pred_eb1.1_2, width = 0.5, alpha = 0.4) + 
   theme(legend.position = "none", panel.grid.minor = element_blank()) + 
-  geom_point(aes(x = gender, y = mean_prediction), data = pred_eb1.1_2, size = 2) + 
+  geom_point(aes(x = gender, y = mean_prediction), data = pred_eb1.1_2_mean, size = 2) + 
   scale_fill_manual(values=c("orange", "blue"))+
   theme(plot.title = element_text(hjust = 0.5)) +
-  theme(text = element_text(size=20))
+  theme(text = element_text(size=20)) + 
+  ylim(low=1.45, high=1.85)
 H3.2.1
 ```
 
@@ -468,7 +488,8 @@ H3.2.2 <- ggplot(data_eb, aes(x = hostile_score, y = benevolent_score)) +
   geom_point(aes(x = hostile_score, benevolent_score, color = gender) , data = data_eb) + 
   geom_smooth(aes(x = hostile_score, y = Estimate, color = gender), data = pred_eb1.1_3) + 
     scale_color_manual(values=c("orange", "blue"))+
-  theme(plot.title = element_text(hjust = 0.5)) 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(text = element_text(size=20))
 
 H3.2.2$labels$colour <- "Gender"
 
@@ -531,7 +552,7 @@ pred_eb1.1_5 <-
   as_tibble() %>%
   bind_cols(nd_eb1.1_5)
 
-pred_eb1.1_5 <- pred_eb1.1_5 %>% group_by(gender) %>% summarise(mean_prediction = mean(Estimate))
+pred_eb1.1_5_mean <- pred_eb1.1_5 %>% group_by(gender) %>% summarise(mean_prediction = mean(Estimate))
 ```
 
 
@@ -539,11 +560,13 @@ pred_eb1.1_5 <- pred_eb1.1_5 %>% group_by(gender) %>% summarise(mean_prediction 
 #create the plot
 H3.3.1 <- ggplot(data_eb, aes(x = gender, y = hostile_score, fill = gender)) +
   labs(x = "Gender", y = "Hostile Score", title = "Hypothesis 3.3") +
-  geom_boxplot(aes(x = gender, hostile_score) , data = data_eb, width = 0.5, alpha = 0.4) + 
+  geom_point(aes(x = gender, hostile_score) , data = data_eb, width = 0.5, alpha = 0.4) + 
   theme(legend.position = "none", panel.grid.minor = element_blank()) + 
-  geom_point(aes(x = gender, y = mean_prediction), data = pred_eb1.1_5, size = 2) + 
+  geom_boxplot(aes(x = gender, y = Estimate), data = pred_eb1.1_5, size = 2) + 
   scale_fill_manual(values=c("orange", "blue"))+
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(text = element_text(size=20)) + 
+  ylim(low=0, high=3)
 H3.3.1
 ```
 
@@ -612,6 +635,12 @@ H3.3.3$labels$colour <- "Gender"
 
 H3.3.3
 ```
+
+###Arranging all plots in one
+```{r}
+grid.arrange(H3.1.1, H3.2.1, H3.3.1, nrow = 1)
+```
+
 
 
 #DECISION BIAS
@@ -871,7 +900,7 @@ marginal_effects(model_db6)
 
 ##Waic
 ```{r waic}
-waic <- waic(model_db1, model_db2, model_db3, model_db4)
+waic <- waic(model_db1, model_db2)
 
 waic
 
@@ -880,7 +909,7 @@ waic
 ## Hypothesis testing
 
 
-##Are men better than women? 
+##H1.1.1Are men better than women? 
 ```{r}
 #model db6 with star
 hypothesis(model_db6, "diff < (diff+diff:GenderMale)")
@@ -888,30 +917,37 @@ hypothesis(model_db6, "diff < (diff+diff:GenderMale)")
 ```
 
 
-##Are females more discriminative towards their partner gender in terms of confidence?
+##H1.5.2 Are females more discriminative towards their partner gender in terms of confidence?
 ```{r}
 #model db5 
+hypothesis(model_db5, "Partner_genderMale = (GenderMale + GenderMale:Partner_genderMale)")
+
+
 hypothesis(model_db5, "(Intercept - (Intercept + Partner_genderMale)) > ((Intercept + GenderMale) -  (Intercept + GenderMale:Partner_genderMale))")
 
 
 ```
 
-##Males generally express higher confidence than females
+##H1.5.1 Males generally express higher confidence than females
 
 ```{r}
 #model db5
 hypothesis(model_db5, "((Intercept + (Intercept + Partner_genderMale)) / 2) < (((Intercept + GenderMale) + (Intercept + GenderMale:Partner_genderMale))/2)")
 ```
 
-##Males exploit the information given by the confidence of their partner more than females, when making a final decision
+##H1.1.4; Males exploit the information given by the confidence of their partner more than females, when making a final decision
 ```{r}
 #testing this hypothsis with model_db2
+hypothesis(model_db2, "((conf_dif_c:Leader_genderFemale:Follower_genderFemale + conf_dif_c:Leader_genderFemale:Follower_genderMale)/2) = ( (conf_dif_c:Leader_genderMale:Follower_genderFemale + conf_dif_c:Leader_genderMale:Follower_genderMale)/2) ")
+
 hypothesis(model_db2, "((conf_dif_c:Leader_genderFemale:Follower_genderFemale + conf_dif_c:Leader_genderFemale:Follower_genderMale)/2) > ( (conf_dif_c:Leader_genderMale:Follower_genderFemale + conf_dif_c:Leader_genderMale:Follower_genderMale)/2) ")
 
 ```
 
-##Females are more discriminative to their follower's gender in terms of the degree to which they exploit the information given by their partner's confidence than males
+##H1.1.5; Females are more discriminative to their follower's gender in terms of the degree to which they exploit the information given by their partner's confidence than males
 ```{r}
+hypothesis(model_db2, "(conf_dif_c:Leader_genderFemale:Follower_genderMale - conf_dif_c:Leader_genderFemale:Follower_genderFemale) = ( conf_dif_c:Leader_genderMale:Follower_genderMale - conf_dif_c:Leader_genderMale:Follower_genderFemale) ")
+
 
 hypothesis(model_db2, "(conf_dif_c:Leader_genderFemale:Follower_genderMale - conf_dif_c:Leader_genderFemale:Follower_genderFemale) > ( conf_dif_c:Leader_genderMale:Follower_genderMale - conf_dif_c:Leader_genderMale:Follower_genderFemale) ")
 
@@ -919,14 +955,14 @@ hypothesis(model_db2, "(conf_dif_c:Leader_genderFemale:Follower_genderMale - con
 ```
 
 
-##Males exploit the information given by the skill of their partner more than females, when making a final decision
+##Bruges ikke: Males exploit the information given by the skill of their partner more than females, when making a final decision
 ```{r}
 #testing this hypothsis with model_db2
 hypothesis(model_db2, "((skill_dif_c:Leader_genderFemale:Follower_genderFemale + skill_dif_c:Leader_genderFemale:Follower_genderMale)/2) > ( (skill_dif_c:Leader_genderMale:Follower_genderFemale + skill_dif_c:Leader_genderMale:Follower_genderMale)/2) ")
 
 ```
 
-##Females are more discriminative to their follower's gender in terms of the degree to which they exploit the information given by their partner's skill than males
+##Bruges ikke: Females are more discriminative to their follower's gender in terms of the degree to which they exploit the information given by their partner's skill than males
 ```{r}
 
 hypothesis(model_db2, "(skill_dif_c:Leader_genderFemale:Follower_genderMale - skill_dif_c:Leader_genderFemale:Follower_genderFemale) < ( skill_dif_c:Leader_genderMale:Follower_genderMale - skill_dif_c:Leader_genderMale:Follower_genderFemale) ")
@@ -1029,7 +1065,8 @@ H1.1.1 <- ggplot(data_db, aes(x = Leader_gender, y = leader_behavior, fill = Lea
   scale_y_continuous(breaks = sort(c(seq(min(pred_db1$Estimate), max(pred_db1$Estimate), length.out=5), 0.5))) + 
   geom_hline(yintercept= 0.5, color = "black", linetype = "dashed", alpha = 0.8) + 
   scale_fill_manual(values=c("orange", "blue")) +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5))+ 
+  theme(text = element_text(size=20))
 
 
 H1.1.1
@@ -1047,7 +1084,8 @@ H1.1.2 <- ggplot(data_db, aes(x = Follower_gender, y = leader_behavior, fill = F
   scale_y_continuous(breaks = sort(c(seq(min(pred_db1$Estimate), max(pred_db1$Estimate), length.out=5), 0.5))) + 
   geom_hline(yintercept= 0.5, color = "black", linetype = "dashed", alpha = 0.8) + 
   scale_fill_manual(values=c("orange", "blue")) +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5))+ 
+  theme(text = element_text(size=20))
 
 H1.1.2
 
@@ -1067,7 +1105,8 @@ H1.1.3 <- ggplot(pred_db1, aes(x = Leader_gender, y = Estimate, fill = Follower_
   labs(fill = "Follower gender") + 
   scale_fill_manual(values=c("orange", "blue")) +
   theme(plot.title = element_text(hjust = 0.5)) + 
-    scale_y_continuous(labels = percent_format(accuracy = 2))
+  scale_y_continuous(labels = percent_format(accuracy = 2)) + 
+  theme(text = element_text(size=20))
 
 
 H1.1.3
@@ -1115,7 +1154,8 @@ H2.1.1 <- ggplot(data_db, aes(x = Leader_gender, y = leader_behavior, fill = Lea
   geom_violin(aes(x = Leader_gender, y = Estimate), data = pred_db2.1, trim = FALSE, width =1, alpha = 0.1) + 
   scale_y_continuous(breaks = sort(c(seq(min(pred_db2.1$Estimate), max(pred_db2.1$Estimate), length.out=5), 0.5))) + 
   geom_hline(yintercept= 0.5, color = "black", linetype = "dashed", alpha = 0.8) + 
-  scale_fill_manual(values=c("orange", "blue"))
+  scale_fill_manual(values=c("orange", "blue"))  + 
+  theme(text = element_text(size=20))
 
 H2.1.1
 
@@ -1128,7 +1168,8 @@ H2.1.2 <- ggplot(data_db, aes(x = Follower_gender, y = leader_behavior, fill = F
   geom_violin(aes(x = Follower_gender, y = Estimate), data = pred_db2.1, trim = FALSE, width =1, alpha = 0.1) + 
   scale_y_continuous(breaks = sort(c(seq(min(pred_db2.1$Estimate), max(pred_db2.1$Estimate), length.out=5), 0.5))) + 
   geom_hline(yintercept= 0.5, color = "black", linetype = "dashed", alpha = 0.8) + 
-  scale_fill_manual(values=c("orange", "blue"))
+  scale_fill_manual(values=c("orange", "blue"))  + 
+  theme(text = element_text(size=20))
 
 H2.1.2
 
@@ -1140,7 +1181,9 @@ H2.1.3 <- ggplot(pred_db2.1, aes(x = Leader_gender, y = Estimate, fill = Followe
   stat_summary(fun.data=mean_sdl, geom="pointrange", color="black", position = position_dodge(width = 0.7), alpha = 0.8) +
   labs(fill = "Follower gender") + 
   scale_fill_manual(values=c("orange", "blue")) +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5))  + 
+  theme(text = element_text(size=20)) +
+  scale_y_continuous(labels = percent_format(accuracy = 2)) 
 
 H2.1.3
 ```
@@ -1201,7 +1244,10 @@ plot_conf <- ggplot(data=pred_db2, aes(x=conf_dif_c, y=Estimate, group=leader_fo
         legend.direction = "horizontal",
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        legend.position="top")
+        legend.position="top")+ 
+  theme(text = element_text(size=20))+labs(colour="Leader Gender, Follower Gender") +
+  scale_y_continuous(labels = percent_format(accuracy = 2)) 
+
 
 plot_conf
 ```
@@ -1286,7 +1332,7 @@ pred_db3 <-
 ```
 
 ```{r}
-
+scaleFUN <- function(x) sprintf("%.2f", x)
 H3 <- ggplot(pred_db3, aes(x = Gender, y = Estimate, fill = Partner_gender)) + 
   geom_violin(aes(x = Gender, y = Estimate), data = pred_db3, width = 0.7, alpha = 0.6) + 
   scale_y_continuous(breaks = sort(c(seq(min(pred_db3$Estimate), max(pred_db3$Estimate), length.out=6), 0.5))) + 
@@ -1295,7 +1341,9 @@ H3 <- ggplot(pred_db3, aes(x = Gender, y = Estimate, fill = Partner_gender)) +
   stat_summary(fun.data=mean_sdl, geom="pointrange", color="black", position = position_dodge(width = 0.7), alpha = 0.8) +
   labs(fill = "Partner gender") + 
   scale_fill_manual(values=c("orange", "blue")) + 
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme(text = element_text(size=20)) +
+  scale_y_continuous(labels=scaleFUN)
 
 
 H3
@@ -1486,6 +1534,8 @@ H3.2 <- ggplot(pred, aes(x = Leader_gender, y = Estimate, fill = Follower_gender
 
 #create response abs
 data_db_long$Response_abs <- abs(data_db_long$Response)
+data_db_long$Response_abs_z <- scale(data_db_long$Response)
+
 
 #remove the first 10 trials
 
@@ -1499,7 +1549,7 @@ prior_db_conf_skill <- c(
 )
 
 #prior predictive check
-model_db_conf_skill_prior <- brm(Sensitivity_roll ~ 1 + Response_abs * Gender + (1 | SubjectID), 
+model_db_conf_skill_prior <- brm(Sensitivity_roll ~ 1 + Response_abs_z * Gender + (1 | SubjectID), 
                        prior = prior_db_conf_skill, 
                        data = data_db_long, 
                        sample_prior = "only",
@@ -1511,7 +1561,7 @@ model_db_conf_skill_prior <- brm(Sensitivity_roll ~ 1 + Response_abs * Gender + 
 pp_check(model_db_conf_skill_prior, nsamples = 100)
 
 
-model_db_conf_skill <- brm(Sensitivity_roll ~ 1 + Response_abs * Gender + (1 | SubjectID),
+model_db_conf_skill <- brm(Sensitivity_roll ~ 1 + Response_abs_z * Gender + (1 | SubjectID),
   data = data_db_long,
   prior = prior_db_conf_skill,
   sample_prior=T,
@@ -1521,6 +1571,17 @@ model_db_conf_skill <- brm(Sensitivity_roll ~ 1 + Response_abs * Gender + (1 | S
   cores=4,
   control = list(adapt_delta = 0.9) 
 ) 
+
+```
+
+```{r extra shit from thea to all of us }
+
+thea <- data_db_all
+
+thea <- filter(data_db, Follower_gender != Leader_gender)
+
+
+
 
 ```
 
