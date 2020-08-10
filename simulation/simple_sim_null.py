@@ -308,7 +308,7 @@ class Control:
 ####OUTPUT SECTION
 #Actual raesults from our experiment
 #FF, FM, MM, MF
-control = Control(-6, 0, 0, -6)
+control = Control(0, 0, 0, 0)
 
 control.run_simulations()
 results = control.fetch_results()
@@ -321,4 +321,4 @@ print(results)
 DATA = DATA.append({
     'Results': results}, ignore_index = True)
 
-DATA.to_csv('simple_sim_EB.csv')
+DATA.to_csv('simple_sim_null.csv')

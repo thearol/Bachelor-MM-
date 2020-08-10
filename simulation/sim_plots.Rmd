@@ -118,7 +118,7 @@ p4 + scale_fill_manual(values=fill)
 
 ```{r plotting hierachical gender distribution}
 
-year20_dis <- read.csv("data/simple_sim_DB.csv", stringsAsFactors = F)
+year20_dis <- read.csv("simulation_EB15.csv", stringsAsFactors = F)
 year20_dis$Results <- strsplit(year20_dis$Results, ",")
   
 yy <- year20_dis
@@ -165,12 +165,11 @@ year20_long$pos <- rep(1:8,2)
 
 
 year20_long$employ_pos <- year20_long$Employees
-year20_long$employ_pos <- c(-261, -196, -103,  -73,  -37,  -27,   -15,   -10,  238,  153,   96,   76,   62,   47,   31,    17)
-
+year20_long$employ_pos <- c(-271, -202, -113,  -80,  -50,  -35,   -23,   -15,  258, 170, 115,  100,  77,  68,   45,   25)
 
 n1 <- ggplot(year20_long, aes(x = Level, y = Employees, fill = Gender)) + 
-  geom_bar(data = subset(year20_long, Gender == "Female"), stat = "identity", position = "dodge") + 
-  geom_bar(data = subset(year20_long, Gender == "Male"), stat = "identity", position = "dodge") + 
+  geom_bar(data = subset(year20_long, Gender == "Female"), stat = "identity", position = "dodge", alpha = 0.7) + 
+  geom_bar(data = subset(year20_long, Gender == "Male"), stat = "identity", position = "dodge", alpha = 0.7) + 
   scale_y_continuous(breaks = seq(-300,300,50), labels = paste0(as.character(c(c(300,250, 200, 150, 100, 50, 0), c(50, 100, 150, 200, 250,300))))) + 
   coord_flip() + 
   theme_bw() + 
@@ -178,7 +177,7 @@ n1 <- ggplot(year20_long, aes(x = Level, y = Employees, fill = Gender)) +
 fill <- c("orange", "blue")
 n1 + scale_fill_manual(values=fill) + geom_text(data=year20_long, aes(x = pos, y = (employ_pos), label = paste0(X1,"%")), size=4) + 
   scale_x_discrete(limits=c("1", "2", "3", "4", "5", "6", "7", "8")) + 
-  ggtitle("Gender distribution of employees at each levels after 10 years")
+  ggtitle("Gender distribution of employees at each level after 10 years")
   
 
 
@@ -192,7 +191,7 @@ DB <- read.csv("data/simple_sim_DB.csv", stringsAsFactors = F)
 IB <- read.csv("data/simple_sim_IB.csv", stringsAsFactors = F)
 EB <- read.csv("data/simple_sim_EB.csv", stringsAsFactors = F)
 
-compare_0 <- read.csv("simulation_10_nulbias.csv", stringsAsFactors = F)
+compare_0 <- read.csv("data/simple_sim_null.csv", stringsAsFactors = F)
 
 
 DB$Results <- strsplit(DB$Results, ",")
@@ -257,15 +256,15 @@ names(EB) <- c("female_level1", "female_level2", "female_level3", "female_level4
   EB$female_level1 <- round(as.numeric(EB$female_level1), digits = 2)
  
 DB_long <- as.data.frame(t(DB[1:8]))  
-DB_long$bias <- "Bias taken from decision bias"
+DB_long$bias <- "Decision bias"
 DB_long$Level <- rep(1:8,1)
 
 IB_long <- as.data.frame(t(IB[1:8]))  
-IB_long$bias <- "Bias taken from implicit bias"
+IB_long$bias <- "Implicit bias"
 IB_long$Level <- rep(1:8,1)
 
 EB_long <- as.data.frame(t(EB[1:8]))  
-EB_long$bias <- "Bias taken from explicit bias"
+EB_long$bias <- "Explicit bias"
 EB_long$Level <- rep(1:8,1)
 
 
@@ -313,10 +312,10 @@ compare_long <- rbind(compare_0_long, DB_long, IB_long, EB_long)
 
 compare <- ggplot(compare_long, aes(x = Level, y = X1, color = bias)) + 
   geom_point() + geom_line() +
-  labs(x="Level", y="Percentage of women employees") +
-  ggtitle("Distribution of female employees after 10 years with and without a bias") + 
+  labs(x="Level", y="Percentage of female employees") +
+  ggtitle("Distribution of female employees after 10 years") + 
   scale_x_discrete(limits=c("1", "2", "3", "4", "5", "6", "7", "8")) + 
-  scale_color_manual(values=c("purple", "gold", "pink", "orange")) + 
+  scale_color_manual(values=c("violet", "lightslateblue", "mediumseagreen", "red3")) + 
   labs(color = "Bias") + 
   scale_y_continuous(labels = dollar_format(suffix = "%", prefix = "")) + 
   geom_text(data=DB_long, aes(x = Level, y = posy, label = paste0(X1,"%")), size=4, position = position_dodge(width=1))+ 
@@ -325,6 +324,9 @@ compare <- ggplot(compare_long, aes(x = Level, y = X1, color = bias)) +
   geom_text(data=compare_0_long, aes(x = Level, y = posy, label = paste0(X1,"%")), size=4, position = position_dodge(width=1)) +  theme_bw() + 
    theme(plot.title = element_text(size = 20, face = "bold"))
 
-compare
+compare + theme(
+  legend.title = element_text(color = "black", size = 20),
+  legend.text = element_text(color = "black", size = 15)
+  )
 
 ```
