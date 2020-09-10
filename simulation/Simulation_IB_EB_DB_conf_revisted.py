@@ -1,3 +1,8 @@
+#DETTE ER EN SIMULATION AF UDVIKLINGEN I KØNSFORDELINGEN I EN VIRKSOMHED OVER TID BASERET PÅ ET KØNSBIAS. 
+#KODEN ER INSPIRERET AF BIAS_IMPACT_PROJECT (https://github.com/penelopy/bias_impact_project)
+#EGNE MODIFICERINGER E.G. 74-91, 106 - 325
+
+
 from numpy import random
 import numpy as np
 import pandas as pd
